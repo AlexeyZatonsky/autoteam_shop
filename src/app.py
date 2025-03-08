@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from src.settings.config import settings
-from src.auth.routers import router as auth_router
+from src.auth.router import router as auth_router
+from src.products.router import router as products_router
 
 
 
@@ -30,3 +31,4 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(products_router)
