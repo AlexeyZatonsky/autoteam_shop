@@ -1,30 +1,31 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, TEXT, NUMERIC, ARRAY, Boolean
+from sqlalchemy import Column, String, TEXT, NUMERIC, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
+import uuid
 from ..database import Base
+from sqlalchemy.sql import func
+from sqlalchemy.types import TIMESTAMP
 
+
+class ProductCategory(Base):
+    __tablename__ = "product_categories"
+    
+    product_id = Column(UUID(as_uuid=True), ForeignKey('products.id', ondelete='CASCADE'), primary_key=True)
+    category_name = Column(String, ForeignKey('categories.name', ondelete='CASCADE'), primary_key=True)
+    
 
 class Category(Base):
     __tablename__ = "categories"
+    name = Column(String, primary_key=True)
     
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, unique=True)
-    description = Column(TEXT, nullable=True)
-    
-    # Отношения
-    products = relationship("Product", back_populates="category")
 
 
 class Product(Base):
     __tablename__ = "products"
     
-    id = Column(Integer, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     description = Column(TEXT, nullable=True)
     price = Column(NUMERIC(10, 2), nullable=False)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
-    images = Column(ARRAY(String), nullable=True)  # массив URL изображений
+    images = Column(ARRAY(String), nullable=True)
     is_available = Column(Boolean, default=True)
-    
-    # Отношения
-    category = relationship("Category", back_populates="products")
-    order_items = relationship("OrderItem", back_populates="product")

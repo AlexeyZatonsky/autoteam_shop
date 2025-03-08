@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, TEXT, NUMERIC, Enum as SQLAlchemyEnum
+from sqlalchemy import Column, Integer, String, UUID, ForeignKey, TEXT, NUMERIC, Enum as SQLAlchemyEnum
+
 from sqlalchemy.orm import relationship
 import enum
 from ..database import Base
@@ -50,7 +51,7 @@ class OrderItem(Base):
     
     id = Column(Integer, primary_key=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
     quantity = Column(Integer, nullable=False)
     price = Column(NUMERIC(10, 2), nullable=False)  # цена на момент заказа
     
