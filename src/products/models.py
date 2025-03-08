@@ -1,23 +1,30 @@
-from sqlalchemy import Column, String, Numeric, UUID, ARRAY, Boolean, ForeignKey, TEXT
+from sqlalchemy import Column, Integer, String, ForeignKey, TEXT, NUMERIC, ARRAY, Boolean
+from sqlalchemy.orm import relationship
 from ..database import Base
-import uuid
 
 
+class Category(Base):
+    __tablename__ = "categories"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False, unique=True)
+    description = Column(TEXT, nullable=True)
+    
+    # Отношения
+    products = relationship("Product", back_populates="category")
 
 
 class Product(Base):
     __tablename__ = "products"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    price = Column(Numeric(10, 2), nullable=False)
-    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
+    description = Column(TEXT, nullable=True)
+    price = Column(NUMERIC(10, 2), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     images = Column(ARRAY(String), nullable=True)  # массив URL изображений
     is_available = Column(Boolean, default=True)
     
-    
-class Category(Base):
-    __tablename__ = "categories"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    description = Column(String, nullable=True)
+    # Отношения
+    category = relationship("Category", back_populates="products")
+    order_items = relationship("OrderItem", back_populates="product")
