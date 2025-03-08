@@ -1,0 +1,9 @@
+alembic>=1.13.1
+FastAPI[all]
+sqlalchemy>=2.0.25
+python-dotenv>=1.0.0
+pydantic>=2.6.1
+pydantic-settings>=2.0.0
+asyncpg>=0.29.0
+uvicorn>=0.27.1
+
