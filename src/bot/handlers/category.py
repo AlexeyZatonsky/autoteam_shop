@@ -1,4 +1,4 @@
-from aiogram import types
+from aiogram import types, Router, F
 from aiogram.fsm.context import FSMContext
 from ..states import CategoryStates
 from ..keyboards import (
@@ -9,6 +9,24 @@ from ..keyboards import (
     get_category_view_keyboard,
     get_category_delete_confirmation_keyboard
 )
+
+router = Router(name="category")
+
+
+@router.callback_query(F.data.startswith("category:"))
+async def category_callback_handler(callback: types.CallbackQuery, state: FSMContext, api_client):
+    """Обработчик всех callback-запросов для категорий"""
+    operation = callback.data.split(":")[1]
+    args = callback.data.split(":")[2:] if len(callback.data.split(":")) > 2 else []
+    
+    await handle_category_action(callback.message, operation, args, state, api_client.make_request)
+    await callback.answer()
+
+
+@router.message(CategoryStates.waiting_for_name)
+async def category_name_handler(message: types.Message, state: FSMContext, api_client):
+    """Обработчик ввода имени категории"""
+    await process_category_name(message, state, api_client.make_request)
 
 
 async def handle_category_action(message: types.Message, operation: str, args: list, state: FSMContext, make_request):
