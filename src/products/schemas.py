@@ -1,38 +1,44 @@
-from pydantic import BaseModel, Field, UUID4, HttpUrl, constr, confloat
+from pydantic import BaseModel, Field, UUID4, constr, confloat
 from typing import List, Optional
 from decimal import Decimal
+from ..categories.schemas import CategoryRead
+from fastapi import UploadFile
 
-
-class CategoryBase(BaseModel):
-    name: str = Field(..., min_length=2, max_length=50, description="Название категории")
-
-
-class CategoryCreate(CategoryBase):
-    pass
-
-
-class CategoryRead(CategoryBase):
-    class Config:
-        from_attributes = True
 
 
 class ProductBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=100, description="Название продукта")
     description: Optional[str] = Field(None, max_length=1000, description="Описание продукта")
     price: Decimal = Field(..., ge=0, le=999999.99, description="Цена продукта")
-    images: Optional[List[HttpUrl]] = Field(default=None, description="Список URL изображений")
+    images: Optional[List[str]] = Field(default=None, description="Список относительных путей к изображениям")
     is_available: bool = Field(default=True, description="Доступность продукта")
 
 
-class ProductCreate(ProductBase):
-    categories: List[str] = Field(..., min_items=1, description="Список названий категорий")
+class ProductCreate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100, description="Название продукта")
+    description: Optional[str] = Field(None, max_length=1000, description="Описание продукта")
+    price: Optional[Decimal] = Field(None, ge=0, le=999999.99, description="Цена продукта")
+    categories: List[str] = Field(default_factory=list, description="Список названий категорий")
+    images: List[str] = Field(default_factory=list, description="Список относительных путей к изображениям")
+    
+    def validate_for_api(self) -> bool:
+        """Проверяет, готова ли модель для отправки в API"""
+        return all([
+            self.name is not None and len(self.name) >= 2,
+            self.price is not None and self.price > 0,
+            len(self.categories) > 0,
+            len(self.images) > 0,
+        ])
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=100)
     description: Optional[str] = Field(None, max_length=1000)
     price: Optional[Decimal] = Field(None, ge=0, le=999999.99)
-    images: Optional[List[HttpUrl]] = None
+    images: Optional[List[str]] = None
     is_available: Optional[bool] = None
     categories: Optional[List[str]] = Field(None, min_items=1)
 

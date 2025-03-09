@@ -5,6 +5,7 @@ import uuid
 from ..database import Base
 from sqlalchemy.sql import func
 from sqlalchemy.types import TIMESTAMP
+from ..categories.models import Category
 
 
 class ProductCategory(Base):
@@ -13,12 +14,6 @@ class ProductCategory(Base):
     product_id = Column(UUID(as_uuid=True), ForeignKey('products.id', ondelete='CASCADE'), primary_key=True)
     category_name = Column(String, ForeignKey('categories.name', ondelete='CASCADE'), primary_key=True)
     
-
-class Category(Base):
-    __tablename__ = "categories"
-    name = Column(String, primary_key=True)
-    
-
 
 class Product(Base):
     __tablename__ = "products"
@@ -29,3 +24,5 @@ class Product(Base):
     price = Column(NUMERIC(10, 2), nullable=False)
     images = Column(ARRAY(String), nullable=True)
     is_available = Column(Boolean, default=True)
+    
+    categories = relationship('Category', secondary='product_categories')

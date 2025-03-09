@@ -6,7 +6,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from src.auth.models import Users
-from src.products.models import Product, Category
+from src.products.models import Product
+from src.categories.models import Category
 from src.orders.models import Order, OrderItem
 
 from src.database import Base
