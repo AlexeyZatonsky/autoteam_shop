@@ -1,71 +1,137 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Dict
 from ..database import get_async_session
-from .service import CategoryService
-from .schemas import CategoryCreate, CategoryRead
+from .service import ProductService
+from .schemas import ProductCreate, ProductRead, ProductUpdate, ProductFilter, ProductListResponse
+from .services.file_service import FileService
+import uuid
 
-router = APIRouter(prefix="/api", tags=["categories"])
+router = APIRouter(prefix="/api/products", tags=["products"])
 
+# Создаем отдельный роутер для загрузки файлов
+upload_router = APIRouter(prefix="/api/upload", tags=["upload"])
 
-@router.post("/categories", response_model=CategoryRead)
-async def create_category(
-    category_data: CategoryCreate,
-    session: AsyncSession = Depends(get_async_session)
-) -> CategoryRead:
+@upload_router.post("", response_model=Dict[str, str])
+async def upload_file(file: UploadFile = File(...)):
     """
-    Создание новой категории товаров.
+    Загружает файл и возвращает его относительный путь.
     
-    - **name**: Название категории (уникальное)
+    - **file**: Файл для загрузки (до 10MB, поддерживаются JPEG, PNG, WebP)
     """
-    service = CategoryService(session)
-    return await service.create_category(category_data)
+    return await FileService.upload_file(file)
 
 
-@router.get("/categories", response_model=List[CategoryRead])
-async def get_categories(
+@router.post("", response_model=ProductRead)
+async def create_product(
+    name: str = Form(...),
+    description: str = Form(None),
+    price: float = Form(...),
+    categories: List[str] = Form(...),
+    images: List[str] = Form(...),
     session: AsyncSession = Depends(get_async_session)
-) -> List[CategoryRead]:
+) -> ProductRead:
     """
-    Получение списка всех категорий.
+    Создание нового продукта с загрузкой изображений.
+    
+    - **name**: Название продукта
+    - **description**: Описание продукта (опционально)
+    - **price**: Цена продукта
+    - **categories**: Список категорий
+    - **images**: Список URL изображений (от 1 до 6)
     """
-    service = CategoryService(session)
-    return await service.get_all_categories()
+    if not (1 <= len(images) <= 6):
+        raise HTTPException(
+            status_code=400,
+            detail="Необходимо указать от 1 до 6 изображений"
+        )
+
+    # Создаем продукт
+    product_data = ProductCreate(
+        name=name,
+        description=description,
+        price=price,
+        images=images,
+        categories=categories
+    )
+
+    service = ProductService(session)
+    return await service.create_product(product_data)
 
 
-@router.get("/categories/{name}", response_model=CategoryRead)
-async def get_category(
-    name: str,
+@router.put("/{product_id}/images", response_model=ProductRead)
+async def update_product_images(
+    product_id: uuid.UUID,
+    images: List[str] = Form(...),
     session: AsyncSession = Depends(get_async_session)
-) -> CategoryRead:
+) -> ProductRead:
     """
-    Получение информации о категории по её названию.
+    Обновление изображений продукта.
+    
+    - **product_id**: ID продукта
+    - **images**: Список URL изображений (от 1 до 6)
     """
-    service = CategoryService(session)
-    return await service.get_category_by_name(name)
+    if not (1 <= len(images) <= 6):
+        raise HTTPException(
+            status_code=400,
+            detail="Необходимо указать от 1 до 6 изображений"
+        )
+
+    service = ProductService(session)
+    
+    # Обновляем продукт
+    update_data = ProductUpdate(images=images)
+    return await service.update_product(product_id, update_data)
 
 
-@router.delete("/categories/{name}")
-async def delete_category(
-    name: str,
+@router.delete("/{product_id}")
+async def delete_product(
+    product_id: uuid.UUID,
     session: AsyncSession = Depends(get_async_session)
 ) -> dict:
     """
-    Удаление категории по названию.
+    Удаление продукта.
+    
+    - **product_id**: ID продукта
     """
-    service = CategoryService(session)
-    await service.delete_category(name)
-    return {"message": f"Категория '{name}' успешно удалена"}
+    service = ProductService(session)
+    
+    # Получаем продукт для проверки существования и имени
+    product = await service.get_product_by_id(product_id)
+    product_name = product.name
+    
+    # Удаляем продукт
+    await service.delete_product(product_id)
+    return {"message": f"Продукт '{product_name}' успешно удален"}
 
 
-@router.put("/categories/{name}", response_model=CategoryRead)
-async def update_category(
-    name: str,
-    new_description: str,
+@router.get("", response_model=ProductListResponse)
+async def get_products(
+    filter_params: ProductFilter = Depends(),
+    page: int = 1,
+    size: int = 20,
     session: AsyncSession = Depends(get_async_session)
-) -> CategoryRead:
+) -> ProductListResponse:
     """
-    Обновление описания категории.
+    Получение списка продуктов с фильтрацией и пагинацией.
+    
+    - **filter_params**: Параметры фильтрации
+    - **page**: Номер страницы (начиная с 1)
+    - **size**: Размер страницы
     """
-    service = CategoryService(session)
-    return await service.update_category(name, new_description)
+    service = ProductService(session)
+    return await service.get_products(filter_params, page, size)
+
+
+@router.get("/{product_id}", response_model=ProductRead)
+async def get_product(
+    product_id: uuid.UUID,
+    session: AsyncSession = Depends(get_async_session)
+) -> ProductRead:
+    """
+    Получение продукта по ID.
+    
+    - **product_id**: ID продукта
+    """
+    service = ProductService(session)
+    return await service.get_product_by_id(product_id)

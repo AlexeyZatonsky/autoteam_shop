@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from src.settings.config import settings
 from src.auth.router import router as auth_router
-from src.products.router import router as products_router
-
+from src.products.router import router as products_router, upload_router
+from src.categories.router import router as categories_router
 
 
 @asynccontextmanager
@@ -32,3 +32,6 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(products_router)
+app.include_router(categories_router)
+app.include_router(upload_router)
+
