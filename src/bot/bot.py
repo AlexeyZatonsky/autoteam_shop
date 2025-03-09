@@ -1,10 +1,12 @@
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
+from aiogram.types import Message, CallbackQuery
+from aiogram.exceptions import TelegramBadRequest
 import asyncio
 
 from ..settings.config import settings
-from .keyboards import get_main_menu
+from .keyboards.menu import get_main_menu
 from .api_client import APIClient
 from .handlers.category import router as category_router
 from .handlers.product import router as product_router
@@ -22,7 +24,7 @@ class AutoteamBot:
         """Настройка обработчиков команд бота"""
         # Регистрируем базовые обработчики
         self.dp.message.register(self.start_handler, Command("start"))
-        self.dp.callback_query.register(self.menu_callback_handler, lambda c: c.data.startswith("menu:"))
+        self.dp.callback_query.register(self.menu_callback_handler, F.data.startswith("menu:"))
 
         # Регистрируем роутеры
         self.dp.include_router(category_router)
@@ -40,27 +42,42 @@ class AutoteamBot:
         """Middleware для проверки прав администратора"""
         user_id = event.from_user.id
         if user_id not in settings.admin_ids:
-            if isinstance(event, types.CallbackQuery):
-                await event.answer("У вас нет доступа к этой команде.", show_alert=True)
-            else:
+            if isinstance(event, Message):
                 await event.answer("У вас нет доступа к этой команде.")
+            elif isinstance(event, CallbackQuery):
+                await event.answer("У вас нет доступа к этой функции.", show_alert=True)
             return
         return await handler(event, data)
 
-    async def start_handler(self, message: types.Message):
+    async def start_handler(self, message: Message):
         """Обработчик команды /start"""
+        keyboard = get_main_menu()
         await message.answer(
-            "Админ-меню:",
-            reply_markup=get_main_menu()
+            "Добро пожаловать в панель администратора магазина Autoteam!",
+            reply_markup=keyboard
         )
 
-    async def menu_callback_handler(self, callback: types.CallbackQuery):
-        """Обработчик возврата в главное меню"""
-        await callback.message.edit_text(
-            "Админ-меню:",
-            reply_markup=get_main_menu()
-        )
-        await callback.answer()
+    async def menu_callback_handler(self, callback: CallbackQuery):
+        """Обработчик нажатий на кнопки главного меню"""
+        try:
+            await callback.answer()
+            action = callback.data.split(":")[1]
+            
+            if action == "main":
+                keyboard = get_main_menu()
+                await callback.message.edit_text(
+                    "Админ-меню:",
+                    reply_markup=keyboard
+                )
+        except TelegramBadRequest as e:
+            if "query is too old" in str(e):
+                keyboard = get_main_menu()
+                await callback.message.answer(
+                    "Админ-меню:",
+                    reply_markup=keyboard
+                )
+            else:
+                raise
 
     async def start(self):
         """Запуск бота"""
