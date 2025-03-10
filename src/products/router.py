@@ -135,3 +135,19 @@ async def get_product(
     """
     service = ProductService(session)
     return await service.get_product_by_id(product_id)
+
+
+@router.patch("/{product_id}", response_model=ProductRead)
+async def update_product_partial(
+    product_id: uuid.UUID,
+    product_data: ProductUpdate,
+    session: AsyncSession = Depends(get_async_session)
+) -> ProductRead:
+    """
+    Частичное обновление продукта.
+    
+    - **product_id**: ID продукта
+    - **product_data**: Данные для обновления
+    """
+    service = ProductService(session)
+    return await service.update_product(product_id, product_data)

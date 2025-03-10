@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, delete
 from sqlalchemy.orm import joinedload
 from typing import List, Optional
 from .models import Product, Category, ProductCategory
@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from math import ceil
 from ..aws import s3_client
 from ..settings.config import settings
+import re
 
 
 class ProductService:
@@ -18,6 +19,18 @@ class ProductService:
     @staticmethod
     def get_full_image_url(relative_path: str) -> str:
         """Преобразует относительный путь в полный URL"""
+        # Проверяем, не содержит ли путь уже полный URL
+        if relative_path.startswith(('http://', 'https://')):
+            # Если путь уже содержит URL, извлекаем только относительный путь
+            # Ищем последнее вхождение 'products/'
+            match = re.search(r'(.*products/)(products/.+)', relative_path)
+            if match:
+                relative_path = match.group(2)
+            else:
+                # Если не удалось найти паттерн, используем последнюю часть пути
+                relative_path = relative_path.split('/')[-1]
+                relative_path = f"products/{relative_path}"
+        
         return f"{settings.S3_URL}/{settings.S3_BUCKET_NAME}/{relative_path}"
         
     @staticmethod
@@ -122,9 +135,9 @@ class ProductService:
 
             # Удаляем старые связи
             await self.session.execute(
-                select(ProductCategory).where(
+                delete(ProductCategory).where(
                     ProductCategory.product_id == product_id
-                ).delete()
+                )
             )
 
             # Создаем новые связи
