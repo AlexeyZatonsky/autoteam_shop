@@ -6,7 +6,7 @@ def get_main_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="📦 Добавить продукт", callback_data="product:add")
+                InlineKeyboardButton(text="📦 Добавить продукт", callback_data="product:create")
             ],
             [
                 InlineKeyboardButton(text="🗑 Удалить продукт", callback_data="product:delete")
