@@ -4,20 +4,26 @@ import enum
 
 class OrderStatusEnum(str, enum.Enum):
     NEW = "new"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
+    PROCESSING = "Передано в доставку"
+    READY = "Готов к выдаче"
+    CANCELLED = "Отменён"
+    COMPLETED = "Завершённый"
     
-class PaymentMethodEnum(str, enum.Enum):
-    CASH = "cash"
-    CARD = "card"
-    ONLINE = "online"
+    
+class PaymentStatusEnum(str, enum.Enum):
+    PAID = "Оплачено"
+    NOT_PAID = "Не оплачено"
+    PAYMENT_ON_DELIVERY = "Оплата при получении" 
     
 class DeliveryMethodEnum(str, enum.Enum):
-    SDEK = "sdek"
-    PEK = "pek"
-    BAIKAL = "baikal"
-    KIT = "kit"
-    BUSINESS_LINES = "business_lines"
-    PICKUP = "pickup"
-    POST = "post"
+    SDEK = "СДЭК"
+    PEK = "ПЭК"
+    BAIKAL = "Байкал"
+    KIT = "Кит"
+    BUSINESS_LINES = "Деловые линии"
+    PICKUP = "Самовывоз"
+    POST = "Почта"
+
+
+
+#Сдэк, Пэк, Байкал, Кит, Деловые линии, самовывоз, почта
