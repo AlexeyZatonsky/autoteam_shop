@@ -3,7 +3,7 @@ import enum
 
 
 class OrderStatusEnum(str, enum.Enum):
-    NEW = "new"
+    NEW = "Новый"
     PROCESSING = "Передано в доставку"
     READY = "Готов к выдаче"
     CANCELLED = "Отменён"

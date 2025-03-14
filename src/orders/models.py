@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, UUID, ForeignKey, DateTime, NUMERIC, Enum as SQLAlchemyEnum
-from datetime import datetime, UTC
+from sqlalchemy import Column, Integer, String, UUID, ForeignKey, TIMESTAMP, NUMERIC, Enum as SQLAlchemyEnum
+from datetime import datetime
 
 from sqlalchemy.orm import relationship
 import uuid
@@ -20,8 +20,8 @@ class Order(Base):
     delivery_method = Column(SQLAlchemyEnum(DeliveryMethodEnum), nullable=False)
     phone_number = Column(String, nullable=False)
     delivery_address = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
-    updated_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC), nullable=False)
+    created_at = Column(TIMESTAMP, default=datetime.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, default=datetime.now(), onupdate=datetime.now(), nullable=False)
     
     # Отношения
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
