@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     S3_ACCESS_KEY: str
     S3_SECRET_KEY: str
     
+    # Ключ API для бота
+    BOT_API_KEY: str = "your-secret-api-key"
+    
     @property
     def database_url(self) -> str:
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
@@ -33,6 +36,14 @@ class Settings(BaseSettings):
     def admin_ids(self) -> List[int]:
         """Преобразует строку с ID админов в список целых чисел"""
         return [int(id_str) for id_str in self.ADMIN_IDS.split(',') if id_str.strip()]
+    
+    @property
+    def ADMIN_USER_ID(self) -> str:
+        """Возвращает ID первого администратора из списка"""
+        admin_ids = self.admin_ids
+        if not admin_ids:
+            raise ValueError("Не указаны ID администраторов в настройках")
+        return str(admin_ids[0])
     
     model_config = SettingsConfigDict(
         env_file=".env",

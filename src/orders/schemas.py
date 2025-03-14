@@ -25,28 +25,11 @@ class OrderItemResponse(OrderItemBase):
 
 
 class OrderBase(BaseModel):
-    payment_status: PaymentStatusEnum = Field(
-        default=PaymentStatusEnum.NOT_PAID,
-        description="Статус оплаты заказа"
-    )
     delivery_method: DeliveryMethodEnum = Field(
         description="Способ доставки"
     )
-    phone_number: str = Field(
-        min_length=10,
-        max_length=20,
-        pattern="^[+]?[0-9]+$",
-        description="Номер телефона в международном формате"
-    )
-    delivery_address: str | None = Field(
-        default=None,
-        min_length=10,
-        description="Адрес доставки"
-    )
-    telegram_username: str = Field(
-        min_length=5,
-        description="Имя пользователя в Telegram"
-    )
+
+
 
 
 class OrderCreate(OrderBase):
@@ -64,8 +47,12 @@ class OrderUpdate(BaseModel):
 class OrderResponse(OrderBase):
     id: UUID4
     user_id: str
+    telegram_username: str
     total_amount: Decimal = Field(decimal_places=2)
     status: OrderStatusEnum
+    payment_status: PaymentStatusEnum
+    phone_number: str
+    delivery_address: str | None
     created_at: datetime
     updated_at: datetime
     items: List[OrderItemResponse]

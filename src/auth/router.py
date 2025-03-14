@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +8,7 @@ import json
 from .schemas import UserProfile, UserResponse, TokenResponse
 from .service import AuthService
 from ..database import get_async_session
+from ..settings.config import settings
 
 
 router = APIRouter(
@@ -175,3 +176,66 @@ async def test_login(
         token_type="bearer",
         user=UserResponse.from_orm(user)
     )
+
+
+async def check_admin_access(
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service)
+) -> UserResponse:
+    """
+    Проверка доступа администратора по API ключу.
+    
+    Используется для защиты API маршрутов, которые вызываются из Telegram бота.
+    Проверяет наличие API ключа в заголовке X-API-Key и сравнивает его с ключом из настроек.
+    
+    Args:
+        request: Объект запроса
+        auth_service: Сервис авторизации
+        
+    Returns:
+        UserResponse: Объект пользователя-администратора
+        
+    Raises:
+        HTTPException: Если API ключ отсутствует или неверный
+    """
+    api_key = request.headers.get("X-API-Key")
+    if not api_key or api_key != settings.BOT_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав для выполнения операции"
+        )
+    
+    # Получаем пользователя-администратора (можно использовать фиксированный ID)
+    # В реальном приложении здесь можно было бы получать ID администратора из настроек
+    admin_id = settings.ADMIN_USER_ID
+    admin = await auth_service.get_current_user(admin_id)
+    
+    if not admin.is_admin():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Пользователь не является администратором"
+        )
+    
+    return admin
+
+
+@router.get("/users/by-username", response_model=UserResponse)
+async def get_user_by_username(
+    username: str,
+    auth_service: AuthService = Depends(get_auth_service),
+    admin: UserResponse = Depends(check_admin_access)
+):
+    """
+    Получение информации о пользователе по имени пользователя в Telegram.
+    
+    Только для администраторов. Требует API-ключ в заголовке X-API-Key.
+    """
+    # Получаем пользователя по имени пользователя
+    user = await auth_service.get_user_by_username(username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Пользователь с именем {username} не найден."
+        )
+    
+    return user

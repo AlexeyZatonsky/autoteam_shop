@@ -21,13 +21,24 @@ class CartService:
 
     async def get_or_create_cart(self, user: UserResponse) -> Cart:
         '''Получение или создание корзины для пользователя'''
-        cart = await self.session.execute(select(Cart).where(Cart.user_id == user.id))
-        cart = cart.scalar_one_or_none()
+        cart = await self.session.execute(
+            select(Cart)
+            .where(Cart.user_id == user.id)
+            .options(joinedload(Cart.items).joinedload(CartItem.product))
+        )
+        cart = cart.unique().scalar_one_or_none()
         
         if cart is None:
             cart = Cart(user_id=user.id, user_tg_name=user.tg_name)
             self.session.add(cart)
             await self.session.commit()
+            # После создания получаем корзину со всеми связями
+            cart = await self.session.execute(
+                select(Cart)
+                .where(Cart.user_id == user.id)
+                .options(joinedload(Cart.items).joinedload(CartItem.product))
+            )
+            cart = cart.unique().scalar_one()
         
         return cart
 
@@ -87,15 +98,7 @@ class CartService:
         await self.session.delete(cart)
         await self.session.commit()
         
-    async def get_user_cart_with_items(self, user_id: str) -> Optional[Cart]:
-        '''Получение корзины пользователя со всеми товарами'''
-        cart = await self.session.execute(
-            select(Cart)
-            .where(Cart.user_id == user_id)
-            .options(joinedload(Cart.items).joinedload(CartItem.product))
-        )
-        return cart.scalar_one_or_none()
-    
+
     async def calculate_cart_total(self, cart_id: UUID) -> Decimal:
         '''Расчет общей стоимости корзины'''
         cart = await self.session.execute(
@@ -103,18 +106,18 @@ class CartService:
             .where(Cart.id == cart_id)
             .options(joinedload(Cart.items).joinedload(CartItem.product))
         )
-        cart = cart.scalar_one_or_none()
+        cart = cart.unique().scalar_one_or_none()
         if not cart:
             return Decimal('0')
         
         total = Decimal('0')
         for item in cart.items:
-            total += item.product.price * item.quantity
+            total += Decimal(str(item.product.price)) * item.quantity
         return total
     
-    async def clear_cart(self, user_id: str) -> None:
+    async def clear_cart(self, user: UserResponse) -> None:
         '''Очистка корзины пользователя'''
-        cart = await self.get_user_cart_with_items(user_id)
+        cart = await self.get_or_create_cart(user)
         if cart:
             await self.session.delete(cart)
             await self.session.commit()

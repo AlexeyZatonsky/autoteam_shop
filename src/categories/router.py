@@ -5,7 +5,7 @@ from ..database import get_async_session
 from .service import CategoryService
 from .schemas import CategoryCreate, CategoryRead
 
-router = APIRouter(prefix="/api/categories", tags=["categories"])
+router = APIRouter(prefix="/categories", tags=["categories"])
 
 
 @router.post("", response_model=CategoryRead)

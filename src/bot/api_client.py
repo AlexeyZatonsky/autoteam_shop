@@ -7,6 +7,25 @@ class APIClient:
     def __init__(self, api_url: str):
         # Убеждаемся, что URL заканчивается на /
         self.api_url = api_url if api_url.endswith('/') else f"{api_url}/"
+        
+        # API клиенты будут инициализированы позже
+        self.product_api = None
+        self.category_api = None
+        self.order_api = None
+        
+        # Инициализируем API клиенты
+        self._init_api_clients()
+
+    def _init_api_clients(self):
+        """Инициализация API клиентов"""
+        # Импортируем здесь, чтобы избежать циклических зависимостей
+        from .api.product_api import ProductAPI
+        from .api.category_api import CategoryAPI
+        from .api.order_api import OrderAPI
+        
+        self.product_api = ProductAPI(self)
+        self.category_api = CategoryAPI(self)
+        self.order_api = OrderAPI(self)
 
     async def make_request(
         self, 

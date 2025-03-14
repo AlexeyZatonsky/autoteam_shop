@@ -6,6 +6,23 @@ def get_main_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
+                InlineKeyboardButton(text="📦 Управление товарами", callback_data="menu:products")
+            ],
+            [
+                InlineKeyboardButton(text="📁 Управление категориями", callback_data="category:manage")
+            ],
+            [
+                InlineKeyboardButton(text="📋 Управление заказами", callback_data="order:manage")
+            ]
+        ]
+    )
+
+
+def get_products_menu() -> InlineKeyboardMarkup:
+    """Меню управления товарами"""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
                 InlineKeyboardButton(text="📦 Добавить продукт", callback_data="product:create")
             ],
             [
@@ -15,19 +32,7 @@ def get_main_menu() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="📋 Выгрузить список продуктов", callback_data="product:list")
             ],
             [
-                InlineKeyboardButton(text="📥 Выгрузить список заказов", callback_data="order:list")
-            ],
-            [
-                InlineKeyboardButton(text="🔍 Получить заказ по ID", callback_data="order:get_by_id")
-            ],
-            [
-                InlineKeyboardButton(text="👤 Получить заказы по user_id", callback_data="order:get_by_user")
-            ],
-            [
-                InlineKeyboardButton(text="✏️ Изменить статус заказа", callback_data="order:change_status")
-            ],
-            [
-                InlineKeyboardButton(text="📁 Управление категориями", callback_data="category:manage")
+                InlineKeyboardButton(text="🔙 Назад", callback_data="menu:main")
             ]
         ]
     ) 

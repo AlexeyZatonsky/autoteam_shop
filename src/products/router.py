@@ -7,10 +7,10 @@ from .schemas import ProductCreate, ProductRead, ProductUpdate, ProductFilter, P
 from .services.file_service import FileService
 import uuid
 
-router = APIRouter(prefix="/api/products", tags=["products"])
+router = APIRouter(prefix="/products", tags=["products"])
 
 # Создаем отдельный роутер для загрузки файлов
-upload_router = APIRouter(prefix="/api/upload", tags=["upload"])
+upload_router = APIRouter(prefix="/upload", tags=["upload"])
 
 @upload_router.post("", response_model=Dict[str, str])
 async def upload_file(file: UploadFile = File(...)):

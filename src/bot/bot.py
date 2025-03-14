@@ -6,7 +6,7 @@ from aiogram.exceptions import TelegramBadRequest
 import asyncio
 
 from ..settings.config import settings
-from .keyboards.menu import get_main_menu
+from .keyboards.menu import get_main_menu, get_products_menu
 from .api_client import APIClient
 from .handlers.category import router as category_router
 from .handlers import (
@@ -52,17 +52,15 @@ class AutoteamBot:
     async def admin_middleware(self, handler, event, data):
         """Middleware для проверки прав администратора"""
         # Временно разрешаем доступ всем пользователям
-        return await handler(event, data)
         
-        # Закомментированный код для проверки прав администратора
-        # user_id = event.from_user.id
-        # if user_id not in settings.admin_ids:
-        #     if isinstance(event, Message):
-        #         await event.answer("У вас нет доступа к этой команде.")
-        #     elif isinstance(event, CallbackQuery):
-        #         await event.answer("У вас нет доступа к этой функции.", show_alert=True)
-        #     return
-        # return await handler(event, data)
+        user_id = event.from_user.id
+        if user_id not in settings.admin_ids:
+            if isinstance(event, Message):
+                await event.answer("У вас нет доступа к этой команде.")
+            elif isinstance(event, CallbackQuery):
+                await event.answer("У вас нет доступа к этой функции.", show_alert=True)
+            return
+        return await handler(event, data)
 
     async def start_handler(self, message: Message):
         """Обработчик команды /start"""
@@ -82,6 +80,12 @@ class AutoteamBot:
                 keyboard = get_main_menu()
                 await callback.message.edit_text(
                     "Админ-меню:",
+                    reply_markup=keyboard
+                )
+            elif action == "products":
+                keyboard = get_products_menu()
+                await callback.message.edit_text(
+                    "Управление товарами:",
                     reply_markup=keyboard
                 )
         except TelegramBadRequest as e:

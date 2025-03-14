@@ -350,3 +350,48 @@ class AuthService:
         await self.session.refresh(user)
         
         return user
+
+    async def get_user_by_username(self, username: str) -> Optional[UserResponse]:
+        """
+        Получает пользователя по имени пользователя в Telegram
+        
+        Args:
+            username: Имя пользователя в Telegram (без @)
+            
+        Returns:
+            Optional[UserResponse]: Объект пользователя или None, если пользователь не найден
+        """
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+        
+        # Выполняем запрос к базе данных
+        query = select(Users).where(Users.tg_name == username)
+        result = await self.session.execute(query)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            return None
+        
+        # Получаем статистику заказов пользователя
+        from sqlalchemy import func, select
+        from ..orders.models import Order
+        
+        # Получаем количество заказов
+        orders_count_query = select(func.count(Order.id)).where(Order.user_id == user.id)
+        orders_count_result = await self.session.execute(orders_count_query)
+        orders_count = orders_count_result.scalar_one() or 0
+        
+        # Получаем общую сумму заказов
+        total_spent_query = select(func.sum(Order.total_amount)).where(Order.user_id == user.id)
+        total_spent_result = await self.session.execute(total_spent_query)
+        total_spent = total_spent_result.scalar_one() or 0
+        
+        # Создаем объект ответа
+        user_response = UserResponse.model_validate(user)
+        
+        # Добавляем статистику заказов
+        user_response_dict = user_response.model_dump()
+        user_response_dict["orders_count"] = orders_count
+        user_response_dict["total_spent"] = float(total_spent)
+        
+        return UserResponse.model_validate(user_response_dict)
