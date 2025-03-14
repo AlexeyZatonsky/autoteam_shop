@@ -1,60 +1,43 @@
-from sqlalchemy import Column, Integer, String, UUID, ForeignKey, TEXT, NUMERIC, Enum as SQLAlchemyEnum
+from sqlalchemy import Column, Integer, String, UUID, ForeignKey, DateTime, NUMERIC, Enum as SQLAlchemyEnum
+from datetime import datetime, UTC
 
 from sqlalchemy.orm import relationship
-import enum
+import uuid
 from ..database import Base
+from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum
 
-
-class OrderStatus(str, enum.Enum):
-    NEW = "new"
-    PROCESSING = "processing"
-    SHIPPED = "shipped"
-    DELIVERED = "delivered"
-    CANCELLED = "cancelled"
-
-
-class PaymentMethod(str, enum.Enum):
-    CASH = "cash"
-    CARD = "card"
-    ONLINE = "online"
-
-
-class DeliveryMethod(str, enum.Enum):
-    SDEK = "sdek"
-    PEK = "pek"
-    BAIKAL = "baikal"
-    KIT = "kit"
-    BUSINESS_LINES = "business_lines"
-    PICKUP = "pickup"
-    POST = "post"
 
 
 class Order(Base):
     __tablename__ = "orders"
     
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String, nullable=False, index=True)  # ID пользователя в Telegram
+    telegram_username = Column(String, nullable=False, index=True)  # Имя пользователя в Telegram
     total_amount = Column(NUMERIC(10, 2), nullable=False)
-    status = Column(SQLAlchemyEnum(OrderStatus), nullable=False, default=OrderStatus.NEW)
-    payment_method = Column(SQLAlchemyEnum(PaymentMethod), nullable=False)
-    delivery_method = Column(SQLAlchemyEnum(DeliveryMethod), nullable=False)
+    status = Column(SQLAlchemyEnum(OrderStatusEnum), nullable=False, default=OrderStatusEnum.NEW)
+    payment_status = Column(SQLAlchemyEnum(PaymentStatusEnum), nullable=False, default=PaymentStatusEnum.NOT_PAID)
+    delivery_method = Column(SQLAlchemyEnum(DeliveryMethodEnum), nullable=False)
     phone_number = Column(String, nullable=False)
-    delivery_address = Column(TEXT, nullable=True)
+    delivery_address = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC), nullable=False)
     
     # Отношения
-    items = relationship("OrderItem", back_populates="order")
-    user = relationship("Users", back_populates="orders")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
 
 class OrderItem(Base):
     __tablename__ = "order_items"
     
-    id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
+    product_name = Column(String, nullable=False)  # Сохраняем название товара на момент заказа
     quantity = Column(Integer, nullable=False)
-    price = Column(NUMERIC(10, 2), nullable=False)  # цена на момент заказа
+    price = Column(NUMERIC(10, 2), nullable=False)  # Цена на момент заказа
+    
     
     # Отношения
     order = relationship("Order", back_populates="items")
-    product = relationship("Product") 
+    product = relationship("Product")

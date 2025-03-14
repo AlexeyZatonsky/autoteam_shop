@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, TEXT, UUID, Enum as SQLAlchemyEnum
+from sqlalchemy import Column, String, Boolean, Enum as SQLAlchemyEnum 
 from ..database import Base
+from typing import Optional
 import uuid
 import enum
 
@@ -12,8 +13,9 @@ class UserRole(str, enum.Enum):
 class Users(Base):
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True)  # Используем ID из Telegram
-    name = Column(String, nullable=False)
+    id = Column(String, primary_key=True)  # Используем ID из Telegram
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=True)
     tg_name = Column(String, nullable=False)
     phone = Column(String, nullable=True)  # Для сохранения контактного телефона
     role = Column(SQLAlchemyEnum(UserRole), nullable=False, default=UserRole.USER)
@@ -21,7 +23,10 @@ class Users(Base):
     language_code = Column(String(10), nullable=True)  # Язык пользователя из Telegram
     
     # Дополнительные поля для доставки
-    default_delivery_address = Column(TEXT, nullable=True)  # Сохраняем адрес доставки
+    default_delivery_address = Column(String, nullable=True)  # Сохраняем адрес доставки
     
     def is_admin(self) -> bool:
         return self.role == UserRole.ADMIN
+
+
+
