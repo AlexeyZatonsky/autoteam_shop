@@ -1,11 +1,12 @@
-from pydantic import BaseModel, Field, UUID4
+from pydantic import BaseModel, Field
+from uuid import UUID
 from typing import List, Optional
 from datetime import datetime
 
 
 class CartItemBase(BaseModel):
     """Базовая схема элемента корзины"""
-    product_id: UUID4
+    product_id: UUID
     quantity: int = Field(ge=1, default=1)
 
 
@@ -14,14 +15,15 @@ class CartItemCreate(CartItemBase):
     pass
 
 
-class CartItemUpdate(BaseModel):
+class CartItemUpdate(CartItemBase):
     """Схема для обновления элемента корзины"""
-    quantity: Optional[int] = Field(ge=1, default=None)
-
+    id: UUID = Field(description="ID корзины")
+    product_id: UUID = Field(description="ID продукта")
+    quantity: int = Field(description="Количество товара") # органичение 0 - полное удаление товара из корзины -1 - удаление одной единицы товара из корзины
 
 class CartItemResponse(CartItemBase):
     """Схема ответа для элемента корзины"""
-    id: UUID4
+    id: UUID
     price_at_add: float
     
     class Config:
@@ -41,6 +43,7 @@ class CartItemDetailResponse(CartItemResponse):
 class CartBase(BaseModel):
     """Базовая схема корзины"""
     user_id: str
+    user_tg_name: str
 
 
 class CartCreate(CartBase):
@@ -50,11 +53,10 @@ class CartCreate(CartBase):
 
 class CartResponse(CartBase):
     """Схема ответа для корзины"""
-    id: UUID4
+    id: UUID
     created_at: datetime
     updated_at: datetime
-    is_active: bool
-    
+
     class Config:
         from_attributes = True
 
