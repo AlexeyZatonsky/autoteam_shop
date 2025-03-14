@@ -1,16 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Body
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
+import urllib.parse
+import json
 
-from .utils import validate_telegram_authorization
-from .schemas import TelegramAuthData, UserProfile, UserResponse, TokenResponse
-from .models import Users
+from .schemas import UserProfile, UserResponse, TokenResponse
 from .service import AuthService
 from ..database import get_async_session
-from ..settings.config import settings
 
 
 router = APIRouter(
@@ -18,88 +15,163 @@ router = APIRouter(
     tags=["auth"]
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
-
-
-async def get_or_create_user(
-    telegram_data: TelegramAuthData,
-    session: AsyncSession
-) -> Users:
-    """Get existing user or create new one from Telegram data."""
-    user = await session.get(Users, telegram_data.user.id)
-    
-    if not user:
-        user = Users(
-            id=telegram_data.user.id,
-            name=telegram_data.user.first_name,
-            tg_name=telegram_data.user.username or telegram_data.user.first_name
-        )
-        session.add(user)
-        await session.commit()
-    
-    return user
-
-
-def create_access_token(data: dict) -> str:
-    """Create JWT token."""
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=7)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_AUTH, algorithm="HS256")
-    return encoded_jwt
+# Схема для проверки Bearer-токена
+bearer_scheme = HTTPBearer(auto_error=True)
 
 
 def get_auth_service(session: AsyncSession = Depends(get_async_session)) -> AuthService:
+    """Получение экземпляра сервиса авторизации."""
     return AuthService(session)
 
 
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    auth: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     auth_service: AuthService = Depends(get_auth_service)
-) -> Users:
-    """Get current user from JWT token."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, settings.SECRET_AUTH, algorithms=["HS256"])
-        user_id: int = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-        
-    return await auth_service.get_current_user(int(user_id))
+) -> UserResponse:
+    """
+    Получение текущего пользователя из JWT-токена.
+    
+    Используется как зависимость для защищенных эндпоинтов.
+    """
+    user = await auth_service.get_current_user_from_token(auth.credentials)
+    return user
 
 
 @router.post("/telegram-login", response_model=TokenResponse)
 async def telegram_login(
-    auth_string: str,
+    init_data: str = Body(..., description="Строка initData из Telegram Web App"),
     auth_service: AuthService = Depends(get_auth_service)
 ):
-    """Login with Telegram data."""
-    return await auth_service.authenticate_telegram_user(auth_string)
+    """
+    Авторизация через Telegram Mini App.
+    
+    Принимает строку initData из Telegram Web App, проверяет подпись и возвращает JWT-токен.
+    """
+    return await auth_service.authenticate_telegram_user(init_data)
+
+
+@router.post("/telegram-login-debug", response_model=dict)
+async def telegram_login_debug(
+    init_data: str = Body(..., description="Строка initData из Telegram Web App для отладки")
+):
+    """
+    Отладочный эндпоинт для авторизации через Telegram Mini App.
+    
+    Принимает строку initData из Telegram Web App и возвращает декодированные данные без проверки подписи.
+    Используйте только для отладки!
+    """
+    try:
+        # Декодируем URL-encoded строку
+        init_data_segments = urllib.parse.unquote(init_data).split("&")
+        init_data_dict = {}
+
+        for segment in init_data_segments:
+            key, value = segment.split("=", 1)
+            init_data_dict[key] = value
+            
+        # Если есть user, декодируем его из JSON
+        if "user" in init_data_dict and init_data_dict["user"]:
+            init_data_dict["user"] = json.loads(init_data_dict["user"])
+            
+        return {
+            "decoded_data": init_data_dict,
+            "message": "Это отладочный эндпоинт. Не используйте его в продакшене!"
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "message": "Ошибка при декодировании данных"
+        }
 
 
 @router.get("/me", response_model=UserResponse)
 async def get_user_profile(
-    current_user: Annotated[Users, Depends(get_current_user)]
+    current_user: Annotated[UserResponse, Depends(get_current_user)]
 ):
-    """Get current user profile."""
+    """
+    Получение профиля текущего пользователя.
+    
+    Требует авторизации через JWT-токен.
+    """
     return current_user
 
 
 @router.patch("/me", response_model=UserResponse)
 async def update_user_profile(
     profile: UserProfile,
-    current_user: Annotated[Users, Depends(get_current_user)],
+    current_user: Annotated[UserResponse, Depends(get_current_user)],
     auth_service: AuthService = Depends(get_auth_service)
 ):
-    """Update user profile."""
-    return await auth_service.update_user_profile(
+    """
+    Обновление профиля текущего пользователя.
+    
+    Требует авторизации через JWT-токен.
+    """
+    updated_user = await auth_service.update_user_profile(
         user=current_user,
         phone=profile.phone,
         delivery_address=profile.delivery_address
-    ) 
+    )
+    return updated_user
+
+
+@router.post(
+    "/test-login", 
+    response_model=TokenResponse,
+    responses={
+        200: {
+            "description": "Успешная авторизация",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "token_type": "bearer",
+                        "user": {
+                            "id": "123456789",
+                            "first_name": "Иван",
+                            "last_name": "Иванов",
+                            "tg_name": "ivanov",
+                            "role": "user",
+                            "is_admin": False,
+                            "phone": None,
+                            "default_delivery_address": None,
+                            "language_code": None
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
+async def test_login(
+    user_id: str = Form(..., description="ID пользователя в Telegram"),
+    first_name: str = Form(..., description="Имя пользователя"),
+    last_name: str = Form(None, description="Фамилия пользователя (опционально)"),
+    tg_name: str = Form(..., description="Username пользователя в Telegram"),
+    is_admin: bool = Form(False, description="Является ли пользователь администратором"),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Тестовая авторизация для Swagger UI.
+    
+    Создает тестового пользователя и возвращает JWT-токен.
+    Используйте только для отладки!
+    """
+    # Создаем тестового пользователя
+    user = await auth_service.create_test_user(
+        user_id=user_id,
+        first_name=first_name,
+        last_name=last_name,
+        tg_name=tg_name,
+        is_admin=is_admin
+    )
+    
+    # Создаем JWT-токен
+    access_token = auth_service.create_access_token({"sub": str(user.id)})
+    
+    # Формируем ответ
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse.from_orm(user)
+    )
