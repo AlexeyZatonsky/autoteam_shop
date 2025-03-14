@@ -9,6 +9,7 @@ from src.auth.models import Users
 from src.products.models import Product
 from src.categories.models import Category
 from src.orders.models import Order, OrderItem
+from src.cart.models import Cart, CartItem
 
 from src.database import Base
 from src.settings.config import settings
