@@ -17,7 +17,6 @@ class CartItemCreate(CartItemBase):
 
 class CartItemUpdate(CartItemBase):
     """Схема для обновления элемента корзины"""
-    id: UUID = Field(description="ID корзины")
     product_id: UUID = Field(description="ID продукта")
     quantity: int = Field(description="Количество товара") # органичение 0 - полное удаление товара из корзины -1 - удаление одной единицы товара из корзины
 
