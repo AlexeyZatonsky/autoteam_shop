@@ -48,9 +48,10 @@ class APIClient:
         endpoint = endpoint.lstrip('/')
         # Формируем полный URL
         url = urljoin(self.api_url, endpoint)
-        
+
+        connector = aiohttp.TCPConnector(ssl=False) 
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=connector) as session:
                 # Если передан FormData, используем его как есть
                 if isinstance(data, aiohttp.FormData):
                     kwargs['data'] = data

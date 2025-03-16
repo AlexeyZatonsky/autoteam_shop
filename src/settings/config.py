@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     SERVER_PORT: int = 1088
     TG_BOT_TOKEN: str
     ADMIN_IDS: str  # Строка с ID через запятую
-    API_URL: str = "http://localhost:1088"
+    API_URL: str
     
     S3_BUCKET_NAME: str
     S3_URL: str
