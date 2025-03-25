@@ -4,7 +4,9 @@ from uuid import uuid4
 from ...aws import s3_client
 import io
 
-
+MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
+ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 class FileService:
     """Сервис для работы с файлами категорий"""
     
@@ -15,48 +17,52 @@ class FileService:
         return f"categories/{uuid4()}.{extension}"
     
     @staticmethod
-    async def upload_file(file: UploadFile | BinaryIO, filename: str = None) -> Dict[str, str]:
-        """Загружает файл в S3 и возвращает его URL"""
+    async def upload_file(file: UploadFile) -> Dict[str, str]:
+        """Загружает файл и возвращает его относительный путь"""
         try:
+            # Получаем содержимое файла
+            content = await file.read()
+            
             # Проверяем тип файла
-            if isinstance(file, UploadFile):
-                content_type = file.content_type
-                if not content_type.startswith('image/'):
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Файл должен быть изображением"
-                    )
-                file_content = await file.read()
-                if not filename:
-                    filename = FileService.generate_unique_filename(file.filename)
-            else:
-                content_type = 'image/jpeg'
-                file_content = file.read()
-                file.seek(0)
-                if not filename:
-                    filename = FileService.generate_unique_filename("image.jpg")
-            
-            # Создаем BytesIO объект
-            file_io = io.BytesIO(file_content)
-            
-            # Загружаем файл в S3
-            url = await s3_client.upload_file(
-                file_io,
-                filename,
-                content_type=content_type
-            )
-            
-            if not url:
+            if file.content_type not in ALLOWED_MIME_TYPES:
                 raise HTTPException(
-                    status_code=500,
-                    detail="Ошибка при загрузке файла в S3"
+                    status_code=400,
+                    detail=f"Неподдерживаемый тип файла: {file.content_type}. Поддерживаются: {', '.join(ALLOWED_MIME_TYPES)}"
                 )
             
-            return {"url": filename}
+            # Проверяем размер файла
+            if len(content) > MAX_IMAGE_SIZE:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Файл слишком большой. Максимальный размер: {MAX_IMAGE_SIZE / 1024 / 1024}MB"
+                )
             
+            # Получаем расширение файла
+            file_ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'jpg'
+            if file_ext not in ALLOWED_EXTENSIONS:
+                file_ext = 'jpg'  # Используем jpg по умолчанию
+            
+            # Генерируем уникальное имя файла
+            object_name = f"categories/{uuid4()}.{file_ext}"
+            
+            # Создаем BytesIO объект
+            file_io = io.BytesIO(content)
+            
+            # Загружаем файл в S3
+            full_url = await s3_client.upload_file(file_io, object_name, content_type=file.content_type)
+            if not full_url:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Ошибка при загрузке файла {file.filename}"
+                )
+            
+            # Возвращаем только относительный путь
+            return {"url": object_name}
+        except HTTPException:
+            raise
         except Exception as e:
             print(f"Ошибка при загрузке файла: {str(e)}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Ошибка при загрузке файла: {str(e)}"
+                detail=f"Неожиданная ошибка при загрузке файла: {str(e)}"
             ) 

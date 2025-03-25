@@ -103,21 +103,21 @@ async def category_image_handler(message: Message, state: FSMContext, api_client
         
         category_api = CategoryAPI(api_client)
         
-        # Загружаем файл на сервер
         try:
-            response = await category_api.upload_file(
+            # Сначала загружаем файл на сервер
+            upload_response = await category_api.upload_file(
                 file_content=file_content,
                 filename=unique_filename,
                 content_type='image/jpeg'
             )
             
-            print(f"Ответ при загрузке файла: {response}")
+            print(f"Ответ при загрузке файла: {upload_response}")
             
-            if response and 'url' in response:
+            if upload_response and 'url' in upload_response:
                 # Создаем категорию с загруженным изображением
                 result = await category_api.create_category(
                     name=name,
-                    image_url=response['url']
+                    image_url=upload_response['url']
                 )
                 
                 await state.clear()
@@ -127,6 +127,7 @@ async def category_image_handler(message: Message, state: FSMContext, api_client
                 )
             else:
                 await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
+                
         except Exception as e:
             print(f"Ошибка при загрузке файла: {str(e)}")
             await message.answer(f"Ошибка при загрузке файла: {str(e)}")
@@ -156,18 +157,22 @@ async def category_new_name_handler(message: Message, state: FSMContext, api_cli
         
         category_api = CategoryAPI(api_client)
         
-        # Отправляем запрос к API
-        result = await category_api.update_category_name(
-            old_name=old_name,
-            new_name=new_name
-        )
-        
-        await state.clear()
-        await message.answer(
-            f"✅ Название категории изменено на '{new_name}'!",
-            reply_markup=get_category_view_keyboard(new_name)
-        )
-        
+        try:
+            # Отправляем запрос к API
+            result = await category_api.update_category_name(
+                old_name=old_name,
+                new_name=new_name
+            )
+            
+            await state.clear()
+            await message.answer(
+                f"✅ Название категории изменено на '{new_name}'!",
+                reply_markup=get_category_view_keyboard(new_name)
+            )
+        except Exception as e:
+            print(f"Ошибка при обновлении названия: {str(e)}")
+            await message.answer(f"Ошибка при обновлении названия: {str(e)}")
+            
     except Exception as e:
         print(f"Ошибка при изменении названия: {str(e)}")
         await message.answer(f"❌ Ошибка при изменении названия: {str(e)}")
@@ -189,33 +194,23 @@ async def category_new_image_handler(message: Message, state: FSMContext, api_cl
         
         category_api = CategoryAPI(api_client)
         
-        # Загружаем файл на сервер
         try:
-            response = await category_api.upload_file(
+            # Используем новый метод для загрузки файла и обновления изображения категории
+            result = await category_api.update_category_image_with_file(
+                name=category_name,
                 file_content=file_content,
                 filename=unique_filename,
                 content_type='image/jpeg'
             )
             
-            print(f"Ответ при загрузке файла: {response}")
-            
-            if response and 'url' in response:
-                # Обновляем изображение категории
-                result = await category_api.update_category_image(
-                    name=category_name,
-                    image_url=response['url']
-                )
-                
-                await state.clear()
-                await message.answer(
-                    "✅ Изображение категории успешно обновлено!",
-                    reply_markup=get_category_view_keyboard(category_name)
-                )
-            else:
-                await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
+            await state.clear()
+            await message.answer(
+                "✅ Изображение категории успешно обновлено!",
+                reply_markup=get_category_view_keyboard(category_name)
+            )
         except Exception as e:
-            print(f"Ошибка при загрузке файла: {str(e)}")
-            await message.answer(f"Ошибка при загрузке файла: {str(e)}")
+            print(f"Ошибка при обновлении изображения: {str(e)}")
+            await message.answer(f"Ошибка при обновлении изображения: {str(e)}")
             await state.clear()
             
     except Exception as e:

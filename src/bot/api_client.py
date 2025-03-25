@@ -77,19 +77,24 @@ class APIClient:
                                 form.add_field(key, str(value))
                     
                     # Добавляем файлы
-                    for file_field, file_tuple in files:
-                        filename, file_content, content_type = file_tuple
-                        form.add_field(
-                            file_field,
-                            file_content,
-                            filename=filename,
-                            content_type=content_type
-                        )
+                    for file_info in files:
+                        if len(file_info) == 2:  # Формат (name, (filename, content, type))
+                            file_field, file_tuple = file_info
+                            filename, file_content, content_type = file_tuple
+                            form.add_field(
+                                file_field,
+                                file_content,
+                                filename=filename,
+                                content_type=content_type
+                            )
                     
                     kwargs['data'] = form
+                    print(f"Отправляем файлы на {url}")
+                    
                 # Если просто данные, добавляем их как json
                 elif data:
                     kwargs['json'] = data
+                    print(f"Отправляем JSON данные на {url}: {data}")
                 
                 print(f"Отправляем запрос {method} на {url}")
                 async with session.request(method, url, **kwargs) as response:

@@ -44,12 +44,21 @@ class CategoryAPI:
         )
     
     async def update_category_image(self, name: str, image_url: str) -> Dict:
-        """Обновляет изображение категории"""
+        """Обновляет изображение категории, используя URL изображения"""
         return await self.api_client.make_request(
             method="PATCH",
             endpoint=f"api/categories/{name}/image",
             data={"image": image_url}
         )
+    
+    async def update_category_image_with_file(self, name: str, file_content: bytes, filename: str, content_type: str = "image/jpeg") -> Dict:
+        """Обновляет изображение категории с загрузкой файла в одном запросе"""
+        # Сначала загружаем файл, а затем обновляем категорию
+        upload_result = await self.upload_file(file_content, filename, content_type)
+        if not upload_result or "url" not in upload_result:
+            raise Exception("Не удалось загрузить файл")
+            
+        return await self.update_category_image(name, upload_result["url"])
     
     async def delete_category(self, name: str) -> Dict:
         """Удаляет категорию"""
@@ -60,10 +69,12 @@ class CategoryAPI:
     
     async def upload_file(self, file_content: bytes, filename: str, content_type: str = "image/jpeg") -> Dict:
         """Загружает файл на сервер и возвращает URL"""
+        files = [
+            ("file", (filename, file_content, content_type))
+        ]
+        
         return await self.api_client.make_request(
             method="POST",
             endpoint="api/categories/upload",
-            files={
-                "file": (filename, file_content, content_type)
-            }
+            files=files
         ) 

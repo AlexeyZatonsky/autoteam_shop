@@ -126,12 +126,25 @@ async def update_category_image(
                     detail="Ошибка при загрузке изображения"
                 )
             image_url = result['url']
-        elif data and 'image' in data:
-            # Если передан URL в JSON
-            image_url = data['image']
-        elif data and isinstance(data, dict) and data.get('image'):
-            # Дополнительная проверка для поддержки разных форматов запросов
-            image_url = data.get('image')
+        elif data:
+            # Проверяем различные варианты расположения URL в данных
+            if isinstance(data, dict):
+                if 'image' in data:
+                    image_url = data['image']
+                elif 'url' in data:
+                    image_url = data['url']
+                else:
+                    # Если data - словарь, но нет нужных ключей, проверяем прямое значение
+                    image_url = data if isinstance(data, str) else None
+            else:
+                # Если data не словарь, проверяем, может быть это строка с URL
+                image_url = data if isinstance(data, str) else None
+                
+            if not image_url:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Не предоставлено изображение или URL"
+                )
         else:
             raise HTTPException(
                 status_code=400,
