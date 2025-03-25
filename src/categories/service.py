@@ -4,9 +4,6 @@ from fastapi import HTTPException
 from .models import Category
 from .schemas import CategoryCreate
 from ..aws import s3_client
-import io
-from uuid import uuid4
-from fastapi import UploadFile
 from ..settings.config import settings
 import re
 
@@ -38,47 +35,6 @@ class CategoryService:
         if category and category.image:
             category.image = CategoryService.get_full_image_url(category.image)
 
-    async def upload_category_image(self, file: UploadFile) -> str:
-        """Загружает изображение категории в S3"""
-        if not file:
-            return None
-            
-        if not file.content_type.startswith('image/'):
-            raise HTTPException(
-                status_code=400,
-                detail="Файл должен быть изображением"
-            )
-            
-        try:
-            # Генерируем уникальное имя файла
-            file_ext = file.filename.split('.')[-1]
-            object_name = f"categories/{uuid4()}.{file_ext}"
-            
-            file_content = await file.read()
-            file_io = io.BytesIO(file_content)
-            
-            # Загружаем файл в S3
-            result = await s3_client.upload_file(
-                file_io, 
-                object_name,
-                content_type=file.content_type
-            )
-            
-            if not result:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Ошибка при загрузке изображения в S3"
-                )
-            
-            return object_name
-            
-        except Exception as e:
-            print(f"Ошибка при загрузке изображения: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Ошибка при загрузке изображения: {str(e)}"
-            )
-
     async def create_category(self, category_data: CategoryCreate) -> Category:
         """Создает новую категорию"""
         # Проверяем, не существует ли уже категория с таким именем
@@ -90,14 +46,10 @@ class CategoryService:
                 status_code=400,
                 detail=f"Категория с названием '{category_data.name}' уже существует"
             )
-            
-        image_url = None
-        if category_data.image:
-            image_url = await self.upload_category_image(category_data.image)
 
         category = Category(
             name=category_data.name,
-            image=image_url
+            image=category_data.image
         )
         self.session.add(category)
         await self.session.commit()
@@ -139,15 +91,7 @@ class CategoryService:
         # Удаляем изображение из S3, если оно есть
         if category.image:
             try:
-                # Получаем относительный путь из полного URL
-                if category.image.startswith(('http://', 'https://')):
-                    path_parts = category.image.split(f"{settings.S3_URL}/{settings.S3_BUCKET_NAME}/")
-                    if len(path_parts) > 1:
-                        object_name = path_parts[1]
-                else:
-                    object_name = category.image
-                    
-                await s3_client.delete_file(object_name)
+                await s3_client.delete_file(category.image)
             except Exception as e:
                 print(f"Ошибка при удалении изображения {category.image}: {str(e)}")
         
@@ -178,40 +122,21 @@ class CategoryService:
         self.get_full_image_urls(category)
         return category
 
-    async def update_category_image(self, name: str, image: UploadFile) -> Category:
+    async def update_category_image(self, name: str, image_url: str) -> Category:
         """Обновляет изображение категории"""
-        try:
-            category = await self.get_category_by_name(name)
-            
-            # Удаляем старое изображение из S3, если оно есть
-            if category.image:
-                try:
-                    # Получаем относительный путь из полного URL
-                    if category.image.startswith(('http://', 'https://')):
-                        path_parts = category.image.split(f"{settings.S3_URL}/{settings.S3_BUCKET_NAME}/")
-                        if len(path_parts) > 1:
-                            object_name = path_parts[1]
-                    else:
-                        object_name = category.image
-                        
-                    await s3_client.delete_file(object_name)
-                except Exception as e:
-                    print(f"Ошибка при удалении старого изображения: {e}")
+        category = await self.get_category_by_name(name)
+        
+        # Удаляем старое изображение из S3, если оно есть
+        if category.image:
+            try:
+                await s3_client.delete_file(category.image)
+            except Exception as e:
+                print(f"Ошибка при удалении старого изображения: {e}")
 
-            # Загружаем новое изображение
-            new_image_path = await self.upload_category_image(image)
-            
-            # Обновляем путь к изображению в БД
-            category.image = new_image_path
-            await self.session.commit()
-            
-            # Преобразуем относительный путь в полный URL
-            self.get_full_image_urls(category)
-            return category
-            
-        except Exception as e:
-            print(f"Ошибка при обновлении изображения категории: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Ошибка при обновлении изображения категории: {str(e)}"
-            ) 
+        # Обновляем путь к изображению в БД
+        category.image = image_url
+        await self.session.commit()
+        
+        # Преобразуем относительный путь в полный URL
+        self.get_full_image_urls(category)
+        return category 

@@ -13,6 +13,7 @@ from src.bot.keyboards.category import (
     get_category_image_view_keyboard
 )
 import io
+from src.bot.services.file_service import BotFileService
 
 router = Router(name="category")
 
@@ -91,30 +92,39 @@ async def category_image_handler(message: Message, state: FSMContext, api_client
         data = await state.get_data()
         name = data['category_name']
         
-        # Получаем файл фотографии
-        photo = message.photo[-1]
-        file = await message.bot.get_file(photo.file_id)
-        file_content = await message.bot.download_file(file.file_path)
+        # Скачиваем фото
+        file_content, unique_filename = await BotFileService.download_photo(message)
+        if not file_content or not unique_filename:
+            await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
+            return
         
-        # Создаем данные для отправки
-        files = {
-            'image': ('image.jpg', file_content, 'image/jpeg')
-        }
-        data = {'name': name}
-        
-        # Отправляем запрос к API
-        result = await api_client.make_request(
+        # Загружаем файл на сервер
+        response = await api_client.make_request(
             method="POST",
-            endpoint="api/categories",
-            data=data,
-            files=files
+            endpoint="api/categories/upload",
+            files={
+                'file': (unique_filename, file_content, 'image/jpeg')
+            }
         )
         
-        await state.clear()
-        await message.answer(
-            f"✅ Категория '{name}' успешно создана!",
-            reply_markup=get_category_created_keyboard()
-        )
+        if response and 'url' in response:
+            # Создаем категорию с загруженным изображением
+            result = await api_client.make_request(
+                method="POST",
+                endpoint="api/categories",
+                data={
+                    'name': name,
+                    'image': response['url']
+                }
+            )
+            
+            await state.clear()
+            await message.answer(
+                f"✅ Категория '{name}' успешно создана!",
+                reply_markup=get_category_created_keyboard()
+            )
+        else:
+            await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
         
     except Exception as e:
         await message.answer(f"❌ Ошибка при создании категории: {str(e)}")
@@ -162,28 +172,36 @@ async def category_new_image_handler(message: Message, state: FSMContext, api_cl
         data = await state.get_data()
         category_name = data['category_name']
         
-        # Получаем файл фотографии
-        photo = message.photo[-1]
-        file = await message.bot.get_file(photo.file_id)
-        file_content = await message.bot.download_file(file.file_path)
+        # Скачиваем фото
+        file_content, unique_filename = await BotFileService.download_photo(message)
+        if not file_content or not unique_filename:
+            await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
+            return
         
-        # Создаем данные для отправки
-        files = {
-            'image': ('image.jpg', file_content, 'image/jpeg')
-        }
-        
-        # Отправляем запрос к API
-        result = await api_client.make_request(
-            method="PATCH",
-            endpoint=f"api/categories/{category_name}/image",
-            files=files
+        # Загружаем файл на сервер
+        response = await api_client.make_request(
+            method="POST",
+            endpoint="api/categories/upload",
+            files={
+                'file': (unique_filename, file_content, 'image/jpeg')
+            }
         )
         
-        await state.clear()
-        await message.answer(
-            "✅ Изображение категории успешно обновлено!",
-            reply_markup=get_category_view_keyboard(category_name)
-        )
+        if response and 'url' in response:
+            # Обновляем изображение категории
+            result = await api_client.make_request(
+                method="PATCH",
+                endpoint=f"api/categories/{category_name}/image",
+                data={'image': response['url']}
+            )
+            
+            await state.clear()
+            await message.answer(
+                "✅ Изображение категории успешно обновлено!",
+                reply_markup=get_category_view_keyboard(category_name)
+            )
+        else:
+            await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
         
     except Exception as e:
         await message.answer(f"❌ Ошибка при обновлении изображения: {str(e)}")
