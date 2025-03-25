@@ -74,6 +74,22 @@ def get_category_view_keyboard(category_name: str) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
+                    text="🖼 Изображение",
+                    callback_data=f"category:view_image:{category_name}"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="✏️ Изменить название",
+                    callback_data=f"category:edit_name:{category_name}"
+                ),
+                InlineKeyboardButton(
+                    text="🔄 Изменить изображение",
+                    callback_data=f"category:edit_image:{category_name}"
+                )
+            ],
+            [
+                InlineKeyboardButton(
                     text="❌ Удалить", 
                     callback_data=f"category:confirm_delete:{category_name}"
                 )
@@ -98,6 +114,26 @@ def get_category_delete_confirmation_keyboard(category_name: str) -> InlineKeybo
             [
                 InlineKeyboardButton(
                     text="🔙 Отмена", 
+                    callback_data=f"category:view:{category_name}"
+                )
+            ]
+        ]
+    )
+
+
+def get_category_image_view_keyboard(category_name: str) -> InlineKeyboardMarkup:
+    """Клавиатура просмотра изображения категории"""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🔄 Изменить",
+                    callback_data=f"category:edit_image:{category_name}"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🔙 Назад",
                     callback_data=f"category:view:{category_name}"
                 )
             ]

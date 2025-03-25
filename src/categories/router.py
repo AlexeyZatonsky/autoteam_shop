@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from ..database import get_async_session
@@ -17,6 +17,7 @@ async def create_category(
     Создание новой категории товаров.
     
     - **name**: Название категории (уникальное)
+    - **image**: Изображение категории (опционально)
     """
     service = CategoryService(session)
     return await service.create_category(category_data)
@@ -35,7 +36,7 @@ async def get_categories(
 
 @router.get("/{name}", response_model=CategoryRead)
 async def get_category(
-    name: str,
+    name: str = Path(..., min_length=2, max_length=100),
     session: AsyncSession = Depends(get_async_session)
 ) -> CategoryRead:
     """
@@ -47,7 +48,7 @@ async def get_category(
 
 @router.delete("/{name}")
 async def delete_category(
-    name: str,
+    name: str = Path(..., min_length=2, max_length=100),
     session: AsyncSession = Depends(get_async_session)
 ) -> dict:
     """
@@ -58,14 +59,33 @@ async def delete_category(
     return {"message": f"Категория '{name}' успешно удалена"}
 
 
-@router.put("/{name}", response_model=CategoryRead)
-async def update_category(
-    name: str,
-    new_name: str,
+@router.patch("/{name}")
+async def update_category_name(
+    name: str = Path(..., min_length=2, max_length=100),
+    new_name: str = Query(..., min_length=2, max_length=100),
     session: AsyncSession = Depends(get_async_session)
 ) -> CategoryRead:
     """
     Обновление названия категории.
     """
     service = CategoryService(session)
-    return await service.update_category(name, new_name) 
+    return await service.update_category_name(name, new_name)
+
+
+@router.patch("/{name}/image")
+async def update_category_image(
+    name: str = Path(..., min_length=2, max_length=100),
+    image: UploadFile = None,
+    session: AsyncSession = Depends(get_async_session)
+) -> CategoryRead:
+    """
+    Обновление изображения категории.
+    """
+    if not image:
+        raise HTTPException(status_code=400, detail="Изображение не предоставлено")
+        
+    if not image.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="Файл должен быть изображением")
+        
+    service = CategoryService(session)
+    return await service.update_category_image(name, image) 

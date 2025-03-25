@@ -9,8 +9,10 @@ from src.bot.keyboards.category import (
     get_category_creation_keyboard,
     get_category_created_keyboard,
     get_category_view_keyboard,
-    get_category_delete_confirmation_keyboard
+    get_category_delete_confirmation_keyboard,
+    get_category_image_view_keyboard
 )
+import io
 
 router = Router(name="category")
 
@@ -28,6 +30,9 @@ async def category_callback_handler(callback: CallbackQuery, state: FSMContext, 
             "add": handle_add,
             "cancel": handle_cancel,
             "view": handle_view,
+            "view_image": handle_view_image,
+            "edit_name": handle_edit_name,
+            "edit_image": handle_edit_image,
             "confirm_delete": handle_confirm_delete,
             "delete": handle_delete
         }
@@ -67,15 +72,42 @@ async def category_name_handler(message: Message, state: FSMContext, api_client)
             )
             return
         
-        # Создаем данные в соответствии со схемой CategoryCreate
-        category_data = {"name": name}
+        # Сохраняем имя и просим загрузить изображение
+        await state.update_data(category_name=name)
+        await state.set_state(CategoryStates.waiting_for_image)
+        await message.answer(
+            "Отлично! Теперь отправьте изображение для категории:",
+            reply_markup=get_category_creation_keyboard()
+        )
+        
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {str(e)}")
+
+
+@router.message(CategoryStates.waiting_for_image, F.photo)
+async def category_image_handler(message: Message, state: FSMContext, api_client):
+    """Обработчик загрузки изображения категории"""
+    try:
+        data = await state.get_data()
+        name = data['category_name']
+        
+        # Получаем файл фотографии
+        photo = message.photo[-1]
+        file = await message.bot.get_file(photo.file_id)
+        file_content = await message.bot.download_file(file.file_path)
+        
+        # Создаем данные для отправки
+        files = {
+            'image': ('image.jpg', file_content, 'image/jpeg')
+        }
+        data = {'name': name}
         
         # Отправляем запрос к API
         result = await api_client.make_request(
             method="POST",
             endpoint="api/categories",
-            json=category_data,
-            headers={"Content-Type": "application/json"}
+            data=data,
+            files=files
         )
         
         await state.clear()
@@ -85,17 +117,142 @@ async def category_name_handler(message: Message, state: FSMContext, api_client)
         )
         
     except Exception as e:
-        error_msg = str(e)
-        if "уже существует" in error_msg:
+        await message.answer(f"❌ Ошибка при создании категории: {str(e)}")
+        await state.clear()
+
+
+@router.message(CategoryStates.waiting_for_new_name)
+async def category_new_name_handler(message: Message, state: FSMContext, api_client):
+    """Обработчик изменения имени категории"""
+    try:
+        new_name = message.text.strip()
+        data = await state.get_data()
+        old_name = data['category_name']
+        
+        # Проверяем длину названия
+        if len(new_name) < 2 or len(new_name) > 50:
             await message.answer(
-                f"❌ Категория с названием '{name}' уже существует.\n"
+                "❌ Название категории должно содержать от 2 до 50 символов.\n"
                 "Попробуйте другое название."
+            )
+            return
+        
+        # Отправляем запрос к API
+        result = await api_client.make_request(
+            method="PATCH",
+            endpoint=f"api/categories/{old_name}",
+            json={"name": new_name}
+        )
+        
+        await state.clear()
+        await message.answer(
+            f"✅ Название категории изменено на '{new_name}'!",
+            reply_markup=get_category_view_keyboard(new_name)
+        )
+        
+    except Exception as e:
+        await message.answer(f"❌ Ошибка при изменении названия: {str(e)}")
+        await state.clear()
+
+
+@router.message(CategoryStates.waiting_for_new_image, F.photo)
+async def category_new_image_handler(message: Message, state: FSMContext, api_client):
+    """Обработчик изменения изображения категории"""
+    try:
+        data = await state.get_data()
+        category_name = data['category_name']
+        
+        # Получаем файл фотографии
+        photo = message.photo[-1]
+        file = await message.bot.get_file(photo.file_id)
+        file_content = await message.bot.download_file(file.file_path)
+        
+        # Создаем данные для отправки
+        files = {
+            'image': ('image.jpg', file_content, 'image/jpeg')
+        }
+        
+        # Отправляем запрос к API
+        result = await api_client.make_request(
+            method="PATCH",
+            endpoint=f"api/categories/{category_name}/image",
+            files=files
+        )
+        
+        await state.clear()
+        await message.answer(
+            "✅ Изображение категории успешно обновлено!",
+            reply_markup=get_category_view_keyboard(category_name)
+        )
+        
+    except Exception as e:
+        await message.answer(f"❌ Ошибка при обновлении изображения: {str(e)}")
+        await state.clear()
+
+
+async def handle_view_image(message: Message, args: list, state: FSMContext, make_request, new_message: bool = False):
+    """Обработка просмотра изображения категории"""
+    if not args:
+        await message.answer("Ошибка: не указано имя категории")
+        return
+        
+    category_name = args[0]
+    try:
+        category = await make_request("GET", f"api/categories/{category_name}")
+        
+        if category.get('image'):
+            keyboard = get_category_image_view_keyboard(category_name)
+            await message.answer_photo(
+                photo=category['image'],
+                caption=f"🖼 Изображение категории '{category_name}'",
+                reply_markup=keyboard
             )
         else:
             await message.answer(
-                f"❌ Ошибка при создании категории: {error_msg}\n"
-                "Убедитесь, что название содержит только допустимые символы."
+                "У этой категории нет изображения.",
+                reply_markup=get_category_view_keyboard(category_name)
             )
+            
+    except Exception as e:
+        await message.answer(f"❌ Ошибка при получении изображения: {str(e)}")
+
+
+async def handle_edit_name(message: Message, args: list, state: FSMContext, make_request, new_message: bool = False):
+    """Обработка изменения названия категории"""
+    if not args:
+        await message.answer("Ошибка: не указано имя категории")
+        return
+        
+    category_name = args[0]
+    await state.set_state(CategoryStates.waiting_for_new_name)
+    await state.update_data(category_name=category_name)
+    
+    text = "Отправьте новое название для категории:"
+    keyboard = get_category_creation_keyboard()
+    
+    if new_message:
+        await message.answer(text, reply_markup=keyboard)
+    else:
+        await message.edit_text(text, reply_markup=keyboard)
+
+
+async def handle_edit_image(message: Message, args: list, state: FSMContext, make_request, new_message: bool = False):
+    """Обработка изменения изображения категории"""
+    if not args:
+        await message.answer("Ошибка: не указано имя категории")
+        return
+        
+    category_name = args[0]
+    await state.set_state(CategoryStates.waiting_for_new_image)
+    await state.update_data(category_name=category_name)
+    
+    text = "Отправьте новое изображение для категории:"
+    keyboard = get_category_creation_keyboard()
+    
+    if new_message:
+        await message.answer(text, reply_markup=keyboard)
+    else:
+        await message.edit_text(text, reply_markup=keyboard)
 
 
 async def handle_manage(message: Message, args: list, state: FSMContext, make_request, new_message: bool = False):
@@ -112,7 +269,6 @@ async def handle_manage(message: Message, args: list, state: FSMContext, make_re
 async def handle_list(message: Message, args: list, state: FSMContext, make_request, new_message: bool = False):
     """Обработка запроса списка категорий"""
     try:
-        # Добавляем явные заголовки для запроса
         categories = await make_request(
             "GET", 
             "api/categories",
