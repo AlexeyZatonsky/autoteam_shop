@@ -14,6 +14,8 @@ from src.bot.keyboards.category import (
 )
 import io
 from src.bot.services.file_service import BotFileService
+from src.bot.api.category_api import CategoryAPI
+
 
 router = Router(name="category")
 
@@ -82,6 +84,7 @@ async def category_name_handler(message: Message, state: FSMContext, api_client)
         )
         
     except Exception as e:
+        print(f"Ошибка при обработке имени категории: {str(e)}")
         await message.answer(f"❌ Ошибка: {str(e)}")
 
 
@@ -98,35 +101,39 @@ async def category_image_handler(message: Message, state: FSMContext, api_client
             await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
             return
         
-        # Загружаем файл на сервер
-        response = await api_client.make_request(
-            method="POST",
-            endpoint="api/categories/upload",
-            files={
-                'file': (unique_filename, file_content, 'image/jpeg')
-            }
-        )
+        category_api = CategoryAPI(api_client)
         
-        if response and 'url' in response:
-            # Создаем категорию с загруженным изображением
-            result = await api_client.make_request(
-                method="POST",
-                endpoint="api/categories",
-                data={
-                    'name': name,
-                    'image': response['url']
-                }
+        # Загружаем файл на сервер
+        try:
+            response = await category_api.upload_file(
+                file_content=file_content,
+                filename=unique_filename,
+                content_type='image/jpeg'
             )
             
+            print(f"Ответ при загрузке файла: {response}")
+            
+            if response and 'url' in response:
+                # Создаем категорию с загруженным изображением
+                result = await category_api.create_category(
+                    name=name,
+                    image_url=response['url']
+                )
+                
+                await state.clear()
+                await message.answer(
+                    f"✅ Категория '{name}' успешно создана!",
+                    reply_markup=get_category_created_keyboard()
+                )
+            else:
+                await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
+        except Exception as e:
+            print(f"Ошибка при загрузке файла: {str(e)}")
+            await message.answer(f"Ошибка при загрузке файла: {str(e)}")
             await state.clear()
-            await message.answer(
-                f"✅ Категория '{name}' успешно создана!",
-                reply_markup=get_category_created_keyboard()
-            )
-        else:
-            await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
-        
+            
     except Exception as e:
+        print(f"Ошибка при создании категории: {str(e)}")
         await message.answer(f"❌ Ошибка при создании категории: {str(e)}")
         await state.clear()
 
@@ -147,11 +154,12 @@ async def category_new_name_handler(message: Message, state: FSMContext, api_cli
             )
             return
         
+        category_api = CategoryAPI(api_client)
+        
         # Отправляем запрос к API
-        result = await api_client.make_request(
-            method="PATCH",
-            endpoint=f"api/categories/{old_name}",
-            json={"name": new_name}
+        result = await category_api.update_category_name(
+            old_name=old_name,
+            new_name=new_name
         )
         
         await state.clear()
@@ -161,6 +169,7 @@ async def category_new_name_handler(message: Message, state: FSMContext, api_cli
         )
         
     except Exception as e:
+        print(f"Ошибка при изменении названия: {str(e)}")
         await message.answer(f"❌ Ошибка при изменении названия: {str(e)}")
         await state.clear()
 
@@ -178,32 +187,39 @@ async def category_new_image_handler(message: Message, state: FSMContext, api_cl
             await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
             return
         
-        # Загружаем файл на сервер
-        response = await api_client.make_request(
-            method="POST",
-            endpoint="api/categories/upload",
-            files={
-                'file': (unique_filename, file_content, 'image/jpeg')
-            }
-        )
+        category_api = CategoryAPI(api_client)
         
-        if response and 'url' in response:
-            # Обновляем изображение категории
-            result = await api_client.make_request(
-                method="PATCH",
-                endpoint=f"api/categories/{category_name}/image",
-                data={'image': response['url']}
+        # Загружаем файл на сервер
+        try:
+            response = await category_api.upload_file(
+                file_content=file_content,
+                filename=unique_filename,
+                content_type='image/jpeg'
             )
             
+            print(f"Ответ при загрузке файла: {response}")
+            
+            if response and 'url' in response:
+                # Обновляем изображение категории
+                result = await category_api.update_category_image(
+                    name=category_name,
+                    image_url=response['url']
+                )
+                
+                await state.clear()
+                await message.answer(
+                    "✅ Изображение категории успешно обновлено!",
+                    reply_markup=get_category_view_keyboard(category_name)
+                )
+            else:
+                await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
+        except Exception as e:
+            print(f"Ошибка при загрузке файла: {str(e)}")
+            await message.answer(f"Ошибка при загрузке файла: {str(e)}")
             await state.clear()
-            await message.answer(
-                "✅ Изображение категории успешно обновлено!",
-                reply_markup=get_category_view_keyboard(category_name)
-            )
-        else:
-            await message.answer("Ошибка при загрузке фото. Пожалуйста, попробуйте еще раз.")
-        
+            
     except Exception as e:
+        print(f"Ошибка при обновлении изображения: {str(e)}")
         await message.answer(f"❌ Ошибка при обновлении изображения: {str(e)}")
         await state.clear()
 
@@ -232,6 +248,7 @@ async def handle_view_image(message: Message, args: list, state: FSMContext, mak
             )
             
     except Exception as e:
+        print(f"Ошибка при получении изображения: {str(e)}")
         await message.answer(f"❌ Ошибка при получении изображения: {str(e)}")
 
 
@@ -289,8 +306,7 @@ async def handle_list(message: Message, args: list, state: FSMContext, make_requ
     try:
         categories = await make_request(
             "GET", 
-            "api/categories",
-            headers={"Accept": "application/json"}
+            "api/categories"
         )
         text = "📁 Список категорий:\n\n"
         text += "\n".join(f"• {category['name']}" for category in categories)
@@ -303,6 +319,7 @@ async def handle_list(message: Message, args: list, state: FSMContext, make_requ
             await message.edit_text(text, reply_markup=keyboard)
             
     except Exception as e:
+        print(f"Ошибка при получении списка категорий: {str(e)}")
         error_text = f"❌ Ошибка при получении списка категорий: {str(e)}"
         await message.answer(error_text)
 
@@ -343,6 +360,7 @@ async def handle_view(message: Message, args: list, state: FSMContext, make_requ
             await message.edit_text(text, reply_markup=keyboard)
             
     except Exception as e:
+        print(f"Ошибка при получении категории: {str(e)}")
         error_text = f"❌ Ошибка при получении категории: {str(e)}"
         await message.answer(error_text)
 
@@ -386,5 +404,6 @@ async def handle_delete(message: Message, args: list, state: FSMContext, make_re
             await message.edit_text(text, reply_markup=keyboard)
             
     except Exception as e:
+        print(f"Ошибка при удалении категории: {str(e)}")
         error_text = f"❌ Ошибка при удалении категории: {str(e)}"
         await message.answer(error_text) 

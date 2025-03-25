@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, Query, Path, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, Query, Path, File, Body
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict
+from typing import List, Dict, Optional
 from ..database import get_async_session
 from .service import CategoryService
 from .schemas import CategoryCreate, CategoryRead
@@ -91,6 +91,9 @@ async def update_category_name(
 ) -> CategoryRead:
     """
     Обновление названия категории.
+    
+    - **name**: Текущее название категории
+    - **new_name**: Новое название категории
     """
     service = CategoryService(session)
     return await service.update_category_name(name, new_name)
@@ -99,15 +102,46 @@ async def update_category_name(
 @router.patch("/{name}/image")
 async def update_category_image(
     name: str = Path(..., min_length=2, max_length=100),
-    image: UploadFile = File(...),
+    data: Dict = Body(default=None),
+    image: UploadFile = File(None),
     session: AsyncSession = Depends(get_async_session)
 ) -> CategoryRead:
     """
     Обновление изображения категории.
-    """
-    # Загружаем новое изображение
-    result = await FileService.upload_file(image)
-    image_url = result['url']
     
-    service = CategoryService(session)
-    return await service.update_category_image(name, image_url) 
+    - **name**: Название категории
+    - **image**: Новое изображение категории (файл)
+    - **data**: JSON с URL изображения в поле "image"
+    """
+    try:
+        service = CategoryService(session)
+        
+        # Проверяем, какой способ передачи изображения использован
+        if image and image.filename:
+            # Если передан файл, загружаем его
+            result = await FileService.upload_file(image)
+            if not result or 'url' not in result:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Ошибка при загрузке изображения"
+                )
+            image_url = result['url']
+        elif data and 'image' in data:
+            # Если передан URL в JSON
+            image_url = data['image']
+        elif data and isinstance(data, dict) and data.get('image'):
+            # Дополнительная проверка для поддержки разных форматов запросов
+            image_url = data.get('image')
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Не предоставлено изображение или URL"
+            )
+            
+        return await service.update_category_image(name, image_url)
+    except Exception as e:
+        print(f"Ошибка при обновлении изображения категории: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при обновлении изображения категории: {str(e)}"
+        ) 

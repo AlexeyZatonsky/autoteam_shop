@@ -1,11 +1,19 @@
 from typing import Tuple, BinaryIO, Optional
 import io
 from aiogram.types import Message, File
-from src.products.services.file_service import FileService as ApiFileService
+from uuid import uuid4
+from src.categories.services.file_service import FileService as CategoriesFileService
+from src.products.services.file_service import FileService as ProductsFileService
 
 
 class BotFileService:
     """Сервис для работы с файлами в боте"""
+    
+    @staticmethod
+    def generate_unique_filename(original_filename: str) -> str:
+        """Генерирует уникальное имя файла"""
+        extension = original_filename.split('.')[-1]
+        return f"{uuid4()}.{extension}"
     
     @staticmethod
     async def download_photo(message: Message) -> Tuple[Optional[bytes], Optional[str]]:
@@ -20,7 +28,7 @@ class BotFileService:
             file_content = await message.bot.download_file(file.file_path)
             
             # Генерируем уникальное имя файла
-            unique_filename = ApiFileService.generate_unique_filename("image.jpg")
+            unique_filename = BotFileService.generate_unique_filename("image.jpg")
             
             return file_content, unique_filename
         except Exception as e:
