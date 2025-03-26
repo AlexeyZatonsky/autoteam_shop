@@ -229,12 +229,28 @@ async def handle_view_image(message: Message, args: list, state: FSMContext, mak
         
     category_name = args[0]
     try:
-        # Получаем API клиент для категорий
-        api_client_instance = APIClient(f"http://{settings.API_URL}/")
-        category_api = CategoryAPI(api_client_instance)
+        # Сначала получаем данные категории через существующий метод make_request
+        category = await make_request("GET", f"api/categories/{category_name}")
+        print(f"Данные категории: {category}")
         
-        # Получаем изображение категории в виде байтов
-        image_data = await category_api.get_category_image(category_name)
+        # Проверяем наличие изображения
+        if not category or not category.get('image'):
+            await message.answer(
+                "У этой категории нет изображения.",
+                reply_markup=get_category_view_keyboard(category_name)
+            )
+            return
+            
+        # Получаем URL изображения
+        image_url = category['image']
+        print(f"URL изображения: {image_url}")
+        
+        # Используем CategoryAPI только для скачивания изображения
+        from src.bot.api.category_api import CategoryAPI
+        
+        # Скачиваем изображение
+        image_data = await CategoryAPI.download_image_from_url(image_url)  # используем статический метод
+        print(f"Размер полученных данных изображения: {len(image_data) if image_data else 'None'}")
         
         if image_data:
             # Отправляем изображение
@@ -246,7 +262,7 @@ async def handle_view_image(message: Message, args: list, state: FSMContext, mak
             )
         else:
             await message.answer(
-                "У этой категории нет изображения.",
+                "Не удалось загрузить изображение категории.",
                 reply_markup=get_category_view_keyboard(category_name)
             )
             

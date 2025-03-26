@@ -3,6 +3,7 @@ import io
 from ..api_client import APIClient
 import aiohttp
 from ...settings.config import settings
+import asyncio
 
 
 class CategoryAPI:
@@ -103,19 +104,49 @@ class CategoryAPI:
     async def download_image_from_url(url: str) -> Optional[bytes]:
         """Скачивает изображение по URL и возвращает его содержимое в виде байтов"""
         if not url:
+            print("URL изображения не указан")
             return None
             
         try:
+            print(f"Скачиваем изображение по URL: {url}")
             connector = aiohttp.TCPConnector(ssl=False)
             async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        return await response.read()
-                    else:
-                        print(f"Ошибка при скачивании изображения: {response.status}")
-                        return None
+                try:
+                    async with session.get(url, timeout=30) as response:
+                        print(f"Ответ от сервера: {response.status} {response.reason}")
+                        
+                        if response.status == 200:
+                            content_type = response.headers.get('Content-Type', '')
+                            print(f"Тип контента: {content_type}")
+                            
+                            if 'image' in content_type:
+                                content = await response.read()
+                                print(f"Получено изображение размером {len(content)} байт")
+                                return content
+                            else:
+                                text = await response.text()
+                                print(f"Ошибка: сервер вернул не изображение, а: {text[:200]}")
+                                return None
+                        else:
+                            try:
+                                error_text = await response.text()
+                                print(f"Ошибка: сервер вернул статус {response.status}: {error_text[:200]}")
+                            except:
+                                print(f"Ошибка при получении текста ошибки")
+                            return None
+                except aiohttp.ClientConnectorError as e:
+                    print(f"Ошибка соединения с сервером: {str(e)}")
+                    return None
+                except aiohttp.ClientError as e:
+                    print(f"Ошибка клиента при скачивании изображения: {str(e)}")
+                    return None
+                except asyncio.TimeoutError:
+                    print(f"Таймаут при скачивании изображения")
+                    return None
         except Exception as e:
-            print(f"Ошибка при скачивании изображения: {str(e)}")
+            print(f"Непредвиденная ошибка при скачивании изображения: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
     
     async def get_category_image(self, category_name: str) -> Optional[bytes]:
