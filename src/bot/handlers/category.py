@@ -15,6 +15,8 @@ from src.bot.keyboards.category import (
 import io
 from src.bot.services.file_service import BotFileService
 from src.bot.api.category_api import CategoryAPI
+from src.bot.api_client import APIClient
+from ...settings.config import settings
 
 
 router = Router(name="category")
@@ -227,12 +229,18 @@ async def handle_view_image(message: Message, args: list, state: FSMContext, mak
         
     category_name = args[0]
     try:
-        category = await make_request("GET", f"api/categories/{category_name}")
+        # Получаем API клиент для категорий
+        api_client_instance = APIClient(f"http://{settings.API_URL}/")
+        category_api = CategoryAPI(api_client_instance)
         
-        if category.get('image'):
+        # Получаем изображение категории в виде байтов
+        image_data = await category_api.get_category_image(category_name)
+        
+        if image_data:
+            # Отправляем изображение
             keyboard = get_category_image_view_keyboard(category_name)
             await message.answer_photo(
-                photo=category['image'],
+                photo=io.BytesIO(image_data),
                 caption=f"🖼 Изображение категории '{category_name}'",
                 reply_markup=keyboard
             )

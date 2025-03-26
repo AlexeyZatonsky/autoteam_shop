@@ -97,4 +97,39 @@ class CategoryAPI:
             method="POST",
             endpoint="api/categories/upload",
             files=files
-        ) 
+        )
+
+    @staticmethod
+    async def download_image_from_url(url: str) -> Optional[bytes]:
+        """Скачивает изображение по URL и возвращает его содержимое в виде байтов"""
+        if not url:
+            return None
+            
+        try:
+            connector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        return await response.read()
+                    else:
+                        print(f"Ошибка при скачивании изображения: {response.status}")
+                        return None
+        except Exception as e:
+            print(f"Ошибка при скачивании изображения: {str(e)}")
+            return None
+    
+    async def get_category_image(self, category_name: str) -> Optional[bytes]:
+        """Получает изображение категории в виде байтов"""
+        try:
+            # Получаем информацию о категории
+            category = await self.get_category(category_name)
+            # Получаем URL изображения
+            image_url = self.get_image_url(category)
+            if not image_url:
+                return None
+                
+            # Скачиваем изображение
+            return await self.download_image_from_url(image_url)
+        except Exception as e:
+            print(f"Ошибка при получении изображения категории: {str(e)}")
+            return None 
