@@ -37,7 +37,8 @@ class CategoryAPI:
         return await self.api_client.make_request(
             method="POST",
             endpoint="api/categories",
-            data=data
+            data=data,
+            is_form_data=True  # Указываем, что данные в формате FormData
         )
     
     async def update_category_name(self, old_name: str, new_name: str) -> Dict:

@@ -33,6 +33,7 @@ class APIClient:
         endpoint: str, 
         data: Union[Dict[str, Any], aiohttp.FormData] = None,
         files: List[tuple] = None,
+        is_form_data: bool = False,
         **kwargs
     ) -> Dict[str, Any]:
         """Выполнение запроса к API
@@ -42,6 +43,7 @@ class APIClient:
             endpoint: Эндпоинт API (без начального слеша)
             data: Данные для запроса (dict или FormData)
             files: Список кортежей (name, (filename, file_content, content_type))
+            is_form_data: Флаг, указывающий, что данные нужно отправить как FormData
             **kwargs: Дополнительные параметры для запроса
         """
         # Убираем начальный слеш, если он есть
@@ -52,8 +54,14 @@ class APIClient:
         connector = aiohttp.TCPConnector(ssl=False) 
         try:
             async with aiohttp.ClientSession(connector=connector) as session:
-                # Если передан FormData, используем его как есть
-                if isinstance(data, aiohttp.FormData):
+                # Если передан FormData или указан флаг is_form_data, используем FormData
+                if isinstance(data, aiohttp.FormData) or is_form_data:
+                    if not isinstance(data, aiohttp.FormData):
+                        form = aiohttp.FormData()
+                        for key, value in data.items():
+                            form.add_field(key, str(value))
+                        data = form
+                    
                     kwargs['data'] = data
                     print(f"Отправляем FormData на {url}")
                     
