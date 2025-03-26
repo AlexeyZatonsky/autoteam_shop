@@ -25,7 +25,12 @@ class CategoryAPI:
     
     async def create_category(self, name: str, image_url: Optional[str] = None) -> Dict:
         """Создает новую категорию"""
-        data = {"name": name}
+        # Создаем FormData
+        data = {
+            "name": name
+        }
+        
+        # Если есть URL изображения, добавляем его
         if image_url:
             data["image"] = image_url
             

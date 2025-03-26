@@ -1,22 +1,25 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from fastapi import UploadFile
 
 
 class CategoryBase(BaseModel):
+    """Базовая схема категории"""
     name: str = Field(..., min_length=2, max_length=100)
     image: Optional[str] = None
 
 
 class CategoryCreate(CategoryBase):
-    image: Optional[UploadFile] = None
+    """Схема для создания категории"""
+    pass
 
 
-class CategoryUpdate(BaseModel):
-    image: Optional[UploadFile] = None
+class CategoryUpdate(CategoryBase):
+    """Схема для обновления категории"""
+    pass
 
 
 class CategoryRead(CategoryBase):
+    """Схема для чтения категории"""
     class Config:
         from_attributes = True 
 

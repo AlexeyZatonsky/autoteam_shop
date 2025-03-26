@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, Query, Path, File, Body
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, Query, Path, File, Body, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Optional
 from ..database import get_async_session
@@ -24,7 +24,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 @router.post("", response_model=CategoryRead)
 async def create_category(
-    name: str = Query(..., min_length=2, max_length=100),
+    name: str = Form(...),
     image: UploadFile = None,
     session: AsyncSession = Depends(get_async_session)
 ) -> CategoryRead:
