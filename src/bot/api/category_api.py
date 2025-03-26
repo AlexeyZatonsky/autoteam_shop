@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional, Any, BinaryIO
 import io
 from ..api_client import APIClient
+import aiohttp
 
 
 class CategoryAPI:
@@ -26,19 +27,17 @@ class CategoryAPI:
     async def create_category(self, name: str, image_url: Optional[str] = None) -> Dict:
         """Создает новую категорию"""
         # Создаем FormData
-        data = {
-            "name": name
-        }
+        data = aiohttp.FormData()
+        data.add_field("name", name)
         
-        # Если есть URL изображения, добавляем его
+        # Если есть URL изображения, добавляем его как строку
         if image_url:
-            data["image"] = image_url
+            data.add_field("image", image_url)
             
         return await self.api_client.make_request(
             method="POST",
             endpoint="api/categories",
-            data=data,
-            is_form_data=True  # Указываем, что данные в формате FormData
+            data=data
         )
     
     async def update_category_name(self, old_name: str, new_name: str) -> Dict:

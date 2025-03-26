@@ -25,20 +25,24 @@ async def upload_file(file: UploadFile = File(...)):
 @router.post("", response_model=CategoryRead)
 async def create_category(
     name: str = Form(...),
-    image: UploadFile = None,
+    image: Optional[str] = Form(None),
+    image_file: UploadFile = File(None),
     session: AsyncSession = Depends(get_async_session)
 ) -> CategoryRead:
     """
     Создание новой категории товаров.
     
     - **name**: Название категории (уникальное)
-    - **image**: Изображение категории (опционально)
+    - **image**: URL изображения категории (опционально)
+    - **image_file**: Файл изображения категории (опционально)
     """
-    # Загружаем изображение, если оно предоставлено
+    # Загружаем изображение, если оно предоставлено как файл
     image_url = None
-    if image:
-        result = await FileService.upload_file(image)
+    if image_file:
+        result = await FileService.upload_file(image_file)
         image_url = result['url']
+    elif image:  # Если предоставлен URL изображения
+        image_url = image
     
     # Создаем данные категории
     category_data = CategoryCreate(name=name, image=image_url)
