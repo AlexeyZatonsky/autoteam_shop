@@ -65,8 +65,8 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
 app.include_router(categories_router, prefix="/api")
-app.include_router(products_upload_router, prefix="/api")
-app.include_router(categories_upload_router, prefix="/api")
+app.include_router(products_upload_router, prefix="/api/products")
+app.include_router(categories_upload_router, prefix="/api/categories")
 app.include_router(cart_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
 
