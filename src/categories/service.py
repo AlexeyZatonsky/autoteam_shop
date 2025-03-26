@@ -19,13 +19,15 @@ class CategoryService:
             return None
             
         if relative_path.startswith(('http://', 'https://')):
-            # Если путь уже содержит URL, извлекаем только относительный путь
-            match = re.search(r'(.*categories/)(categories/.+)', relative_path)
-            if match:
-                relative_path = match.group(2)
-            else:
-                relative_path = relative_path.split('/')[-1]
-                relative_path = f"categories/{relative_path}"
+            return relative_path
+            
+        # Убираем лишний префикс categories/, если он есть дважды
+        if relative_path.startswith('categories/categories/'):
+            relative_path = relative_path[11:]  # Убираем первый 'categories/'
+            
+        # Добавляем префикс categories/, если его нет
+        if not relative_path.startswith('categories/'):
+            relative_path = f"categories/{relative_path}"
         
         return f"{settings.S3_URL}/{settings.S3_BUCKET_NAME}/{relative_path}"
 

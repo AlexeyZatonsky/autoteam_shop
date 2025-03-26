@@ -2,6 +2,7 @@ from typing import List, Dict, Optional, Any, BinaryIO
 import io
 from ..api_client import APIClient
 import aiohttp
+from ...settings.config import settings
 
 
 class CategoryAPI:
@@ -10,6 +11,20 @@ class CategoryAPI:
     def __init__(self, api_client: APIClient):
         self.api_client = api_client
     
+    @staticmethod
+    def get_image_url(category: Dict) -> Optional[str]:
+        """Получает полный URL изображения категории для отображения в Telegram"""
+        if not category or 'image' not in category or not category['image']:
+            return None
+            
+        image_url = category['image']
+        # Проверяем, является ли URL уже полным
+        if not image_url.startswith(('http://', 'https://')):
+            # Формируем полный URL используя настройки S3
+            return f"{settings.S3_URL}/{settings.S3_BUCKET_NAME}/{image_url}"
+            
+        return image_url
+
     async def get_categories(self) -> List[Dict]:
         """Получает список всех категорий"""
         return await self.api_client.make_request(
