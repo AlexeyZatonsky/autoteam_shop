@@ -109,7 +109,7 @@ async def delete_product(
 async def get_products(
     filter_params: ProductFilter = Depends(),
     page: int = 1,
-    size: int = 20,
+    size: int = 10000,  # Устанавливаем очень большое значение по умолчанию
     session: AsyncSession = Depends(get_async_session)
 ) -> ProductListResponse:
     """
@@ -117,7 +117,7 @@ async def get_products(
     
     - **filter_params**: Параметры фильтрации
     - **page**: Номер страницы (начиная с 1)
-    - **size**: Размер страницы
+    - **size**: Размер страницы (по умолчанию 10000 - фактически отключает пагинацию)
     """
     service = ProductService(session)
     return await service.get_products(filter_params, page, size)

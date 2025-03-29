@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, delete
+from sqlalchemy import select, and_, or_, delete, func
 from sqlalchemy.orm import joinedload
 from typing import List, Optional
 from .models import Product, Category, ProductCategory
@@ -241,13 +241,19 @@ class ProductService:
         if conditions:
             query = query.where(and_(*conditions))
 
-        # Получаем общее количество
-        total_query = select(Product).where(*conditions)
-        total_result = await self.session.execute(total_query)
-        total = len(total_result.scalars().all())
+        # Проверяем, запрашиваются ли все продукты (большой размер страницы)
+        is_all_products = size >= 1000
 
-        # Применяем пагинацию
-        query = query.offset((page - 1) * size).limit(size)
+        # Получаем общее количество только если нужна пагинация
+        total = 0
+        if not is_all_products:
+            total_query = select(func.count(Product.id)).where(*conditions)
+            total_result = await self.session.execute(total_query)
+            total = total_result.scalar() or 0
+
+        # Применяем пагинацию только если нужно
+        if not is_all_products:
+            query = query.offset((page - 1) * size).limit(size)
         
         # Получаем результаты
         result = await self.session.execute(query)
@@ -257,6 +263,11 @@ class ProductService:
         # Преобразуем относительные пути в полные URL для каждого продукта
         for product in items:
             self.get_full_image_urls(product)
+
+        # Если запрашиваются все продукты, устанавливаем общее количество
+        # на основе полученных результатов
+        if is_all_products:
+            total = len(items)
 
         return ProductListResponse(
             items=list(items),
