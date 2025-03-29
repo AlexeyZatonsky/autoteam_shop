@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 from fastapi import HTTPException
 from .models import Category
 from .schemas import CategoryCreate
@@ -116,13 +116,35 @@ class CategoryService:
                     detail=f"Категория с названием '{new_name}' уже существует"
                 )
         
-        # Обновляем имя
-        category.name = new_name
-        await self.session.commit()
-        
-        # Преобразуем относительный путь в полный URL
-        self.get_full_image_urls(category)
-        return category
+        # Используем сырой SQL для обновления записей в таблице product_categories
+        # Это нужно сделать до изменения имени категории
+        try:
+            # Сначала обновляем связанные записи в product_categories
+            update_query = text("""
+                UPDATE product_categories
+                SET category_name = :new_name
+                WHERE category_name = :old_name
+            """)
+            
+            await self.session.execute(
+                update_query, 
+                {"old_name": old_name, "new_name": new_name}
+            )
+            
+            # Теперь обновляем имя самой категории
+            category.name = new_name
+            await self.session.commit()
+            
+            # Преобразуем относительный путь в полный URL
+            self.get_full_image_urls(category)
+            return category
+        except Exception as e:
+            await self.session.rollback()
+            print(f"Ошибка при обновлении имени категории: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Ошибка при обновлении имени категории: {str(e)}"
+            )
 
     async def update_category_image(self, name: str, image_url: str) -> Category:
         """Обновляет изображение категории"""
