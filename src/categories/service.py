@@ -116,28 +116,52 @@ class CategoryService:
                     detail=f"Категория с названием '{new_name}' уже существует"
                 )
         
-        # Используем сырой SQL для обновления записей в таблице product_categories
-        # Это нужно сделать до изменения имени категории
         try:
-            # Сначала обновляем связанные записи в product_categories
-            update_query = text("""
-                UPDATE product_categories
-                SET category_name = :new_name
+            # Используем транзакцию для обеспечения целостности данных
+            # Сначала создаем новую категорию с новым именем
+            new_category = Category(
+                name=new_name,
+                image=category.image
+            )
+            self.session.add(new_category)
+            await self.session.flush()  # Применяем изменения, но не коммитим транзакцию
+            
+            # Обновляем связи в product_categories - используем сырой SQL
+            # Создаем новые связи для новой категории
+            from sqlalchemy import text
+            
+            insert_query = text("""
+                INSERT INTO product_categories (product_id, category_name)
+                SELECT product_id, :new_name
+                FROM product_categories
                 WHERE category_name = :old_name
             """)
             
             await self.session.execute(
-                update_query, 
+                insert_query, 
                 {"old_name": old_name, "new_name": new_name}
             )
             
-            # Теперь обновляем имя самой категории
-            category.name = new_name
+            # Удаляем старые связи
+            delete_query = text("""
+                DELETE FROM product_categories
+                WHERE category_name = :old_name
+            """)
+            
+            await self.session.execute(
+                delete_query, 
+                {"old_name": old_name}
+            )
+            
+            # Удаляем старую категорию
+            await self.session.delete(category)
+            
+            # Коммитим все изменения
             await self.session.commit()
             
             # Преобразуем относительный путь в полный URL
-            self.get_full_image_urls(category)
-            return category
+            self.get_full_image_urls(new_category)
+            return new_category
         except Exception as e:
             await self.session.rollback()
             print(f"Ошибка при обновлении имени категории: {str(e)}")
