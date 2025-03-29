@@ -282,12 +282,20 @@ async def change_status_start(callback: CallbackQuery, **kwargs):
     await callback.answer()
 
 
+async def get_full_order_id(api_client, short_order_id: str) -> str:
+    """Получает полный UUID заказа по его короткой версии"""
+    orders = await api_client.get_all_orders()
+    for order in orders:
+        if order["id"].startswith(short_order_id):
+            return order["id"]
+    raise ValueError(f"Заказ с ID {short_order_id} не найден")
+
 @router.callback_query(F.data.startswith("order:set_status:"))
 async def set_status(callback: CallbackQuery, **data):
     """Установка нового статуса заказа"""
     api_client = data["api_client"].order_api
     parts = callback.data.split(":")
-    order_id = parts[2]
+    short_order_id = parts[2]
     status_name = parts[3]
     
     # Получаем значение перечисления по имени
@@ -296,17 +304,20 @@ async def set_status(callback: CallbackQuery, **data):
     await callback.answer(f"Изменение статуса заказа на {status_value}...")
     
     try:
-        # Отправляем значение перечисления, а не его имя
-        await api_client.update_order_status(order_id, status_value)
+        # Получаем полный UUID заказа
+        full_order_id = await get_full_order_id(api_client, short_order_id)
+        
+        # Отправляем значение перечисления, а не его имя, используя полный ID
+        await api_client.update_order_status(full_order_id, status_value)
         
         # Получаем обновленную информацию о заказе
-        order = await api_client.get_order(order_id)
+        order = await api_client.get_order(full_order_id)
         
         # Формируем текст с информацией о заказе
         order_text = format_order_details(order)
         
         # Отправляем информацию о заказе
-        keyboard = get_order_view_keyboard(order_id)
+        keyboard = get_order_view_keyboard(full_order_id)
         await callback.message.edit_text(
             f"✅ Статус заказа изменен на {status_value}\n\n{order_text}",
             reply_markup=keyboard
@@ -314,7 +325,7 @@ async def set_status(callback: CallbackQuery, **data):
     except Exception as e:
         await callback.message.edit_text(
             f"❌ Ошибка при изменении статуса заказа: {str(e)}",
-            reply_markup=get_order_view_keyboard(order_id)
+            reply_markup=get_order_view_keyboard(short_order_id)
         )
 
 
@@ -345,17 +356,8 @@ async def set_payment(callback: CallbackQuery, **data):
     await callback.answer(f"Изменение статуса оплаты на {payment_status_value}...")
     
     try:
-        # Получаем полный список заказов для поиска полного ID
-        orders = await api_client.get_all_orders()
-        # Ищем заказ, ID которого начинается с short_order_id
-        full_order_id = None
-        for order in orders:
-            if order["id"].startswith(short_order_id):
-                full_order_id = order["id"]
-                break
-        
-        if not full_order_id:
-            raise ValueError(f"Заказ с ID {short_order_id} не найден")
+        # Получаем полный UUID заказа
+        full_order_id = await get_full_order_id(api_client, short_order_id)
         
         # Отправляем значение перечисления, а не его имя
         await api_client.update_payment_status(full_order_id, payment_status_value)
@@ -398,22 +400,25 @@ async def confirm_cancel_order(callback: CallbackQuery, **kwargs):
 async def cancel_order(callback: CallbackQuery, **data):
     """Отмена заказа"""
     api_client = data["api_client"].order_api
-    order_id = callback.data.split(":")[2]
+    short_order_id = callback.data.split(":")[2]
     
     await callback.answer("Отмена заказа...")
     
     try:
+        # Получаем полный UUID заказа
+        full_order_id = await get_full_order_id(api_client, short_order_id)
+        
         # Устанавливаем статус CANCELLED
-        await api_client.update_order_status(order_id, "CANCELLED")
+        await api_client.update_order_status(full_order_id, "CANCELLED")
         
         # Получаем обновленную информацию о заказе
-        order = await api_client.get_order(order_id)
+        order = await api_client.get_order(full_order_id)
         
         # Формируем текст с информацией о заказе
         order_text = format_order_details(order)
         
         # Отправляем информацию о заказе
-        keyboard = get_order_view_keyboard(order_id)
+        keyboard = get_order_view_keyboard(full_order_id)
         await callback.message.edit_text(
             f"✅ Заказ успешно отменен\n\n{order_text}",
             reply_markup=keyboard
@@ -421,7 +426,7 @@ async def cancel_order(callback: CallbackQuery, **data):
     except Exception as e:
         await callback.message.edit_text(
             f"❌ Ошибка при отмене заказа: {str(e)}",
-            reply_markup=get_order_view_keyboard(order_id)
+            reply_markup=get_order_view_keyboard(short_order_id)
         )
 
 
@@ -443,12 +448,15 @@ async def confirm_delete_order(callback: CallbackQuery, **kwargs):
 async def delete_order(callback: CallbackQuery, **data):
     """Удаление заказа"""
     api_client = data["api_client"].order_api
-    order_id = callback.data.split(":")[2]
+    short_order_id = callback.data.split(":")[2]
     
     await callback.answer("Удаление заказа...")
     
     try:
-        await api_client.delete_order(order_id)
+        # Получаем полный UUID заказа
+        full_order_id = await get_full_order_id(api_client, short_order_id)
+        
+        await api_client.delete_order(full_order_id)
         
         await callback.message.edit_text(
             "✅ Заказ успешно удален",
