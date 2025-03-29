@@ -58,10 +58,10 @@ class CategoryAPI:
     
     async def update_category_name(self, old_name: str, new_name: str) -> Dict:
         """Обновляет имя категории"""
+        # Отправляем new_name как query-параметр, а не в теле запроса
         return await self.api_client.make_request(
             method="PATCH",
-            endpoint=f"api/categories/{old_name}",
-            data={"new_name": new_name}
+            endpoint=f"api/categories/{old_name}?new_name={new_name}"
         )
     
     async def update_category_image(self, name: str, image_url: str) -> Dict:
