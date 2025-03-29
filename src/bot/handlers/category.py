@@ -393,10 +393,9 @@ async def handle_view(message: Message, args: list, state: FSMContext, make_requ
         keyboard = get_category_view_keyboard(category_name)
         text = f"📁 Категория: {category['name']}"
         
-        if new_message:
-            await message.answer(text, reply_markup=keyboard)
-        else:
-            await message.edit_text(text, reply_markup=keyboard)
+        # Всегда отправляем новое сообщение, когда возвращаемся из просмотра изображения
+        # это предотвращает ошибку редактирования сообщения с фото
+        await message.answer(text, reply_markup=keyboard)
             
     except Exception as e:
         print(f"Ошибка при получении категории: {str(e)}")
