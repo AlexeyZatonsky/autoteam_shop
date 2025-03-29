@@ -245,9 +245,10 @@ async def handle_view_image(message: Message, args: list, state: FSMContext, mak
         image_url = category['image']
         print(f"URL изображения: {image_url}")
         
-        # Отправляем изображение по URL
+        # Отправляем изображение по URL напрямую
         keyboard = get_category_image_view_keyboard(category_name)
         try:
+            # Пробуем отправить по URL напрямую
             await message.answer_photo(
                 photo=image_url,
                 caption=f"🖼 Изображение категории '{category_name}'",
@@ -255,21 +256,30 @@ async def handle_view_image(message: Message, args: list, state: FSMContext, mak
             )
         except Exception as photo_error:
             print(f"Ошибка при отправке фото по URL: {str(photo_error)}")
-            # Если не удалось отправить по URL, пробуем скачать и отправить как файл
-            from aiogram.types import FSInputFile
+            # Если не удалось отправить по URL, скачиваем и отправляем
             from src.bot.api.category_api import CategoryAPI
+            from aiogram.types import BufferedInputFile
             
             # Скачиваем изображение
             image_data = await CategoryAPI.download_image_from_url(image_url)
             if image_data:
-                # Создаем временный файл и отправляем его
-                temp_file = io.BytesIO(image_data)
-                temp_file.name = 'category_image.jpg'
-                await message.answer_photo(
-                    photo=temp_file,
-                    caption=f"🖼 Изображение категории '{category_name}'",
-                    reply_markup=keyboard
-                )
+                # Отправляем изображение с помощью BufferedInputFile
+                try:
+                    photo = BufferedInputFile(
+                        file=image_data,
+                        filename="category_image.jpg"
+                    )
+                    await message.answer_photo(
+                        photo=photo,
+                        caption=f"🖼 Изображение категории '{category_name}'",
+                        reply_markup=keyboard
+                    )
+                except Exception as e:
+                    print(f"Вторая ошибка при отправке фото: {str(e)}")
+                    await message.answer(
+                        f"❌ Не удалось отобразить изображение: {str(e)}",
+                        reply_markup=get_category_view_keyboard(category_name)
+                    )
             else:
                 await message.answer(
                     "Не удалось загрузить изображение категории.",
