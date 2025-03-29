@@ -105,6 +105,6 @@ class ProductAPI:
         
         return await self.api_client.make_request(
             method="POST",
-            endpoint="api/upload",
+            endpoint="api/products/upload",
             data=form
         ) 
