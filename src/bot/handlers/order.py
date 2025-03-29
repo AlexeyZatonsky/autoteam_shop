@@ -54,7 +54,8 @@ async def get_all_orders(callback: CallbackQuery, **data):
         
         keyboard = get_order_list_keyboard(orders)
         await callback.message.edit_text(
-            "📋 Список всех заказов:",
+            "📋 Список всех заказов:\n\n"
+            "Формат: 👤 Пользователь | 💵 Сумма | 📊 Статус заказа | 💰 Статус оплаты",
             reply_markup=keyboard
         )
     except Exception as e:
@@ -82,7 +83,8 @@ async def get_today_orders(callback: CallbackQuery, **data):
         
         keyboard = get_order_list_keyboard(orders)
         await callback.message.edit_text(
-            "📋 Заказы за сегодня:",
+            "📋 Заказы за сегодня:\n\n"
+            "Формат: 👤 Пользователь | 💵 Сумма | 📊 Статус заказа | 💰 Статус оплаты",
             reply_markup=keyboard
         )
     except Exception as e:
@@ -110,7 +112,8 @@ async def get_week_orders(callback: CallbackQuery, **data):
         
         keyboard = get_order_list_keyboard(orders)
         await callback.message.edit_text(
-            "📋 Заказы за последнюю неделю:",
+            "📋 Заказы за последнюю неделю:\n\n"
+            "Формат: 👤 Пользователь | 💵 Сумма | 📊 Статус заказа | 💰 Статус оплаты",
             reply_markup=keyboard
         )
     except Exception as e:
@@ -138,7 +141,8 @@ async def get_completed_orders(callback: CallbackQuery, **data):
         
         keyboard = get_order_list_keyboard(orders)
         await callback.message.edit_text(
-            "📋 Завершенные заказы:",
+            "📋 Завершенные заказы:\n\n"
+            "Формат: 👤 Пользователь | 💵 Сумма | 📊 Статус заказа | 💰 Статус оплаты",
             reply_markup=keyboard
         )
     except Exception as e:
@@ -227,7 +231,8 @@ async def search_by_username_process(message: Message, state: FSMContext, **data
         else:
             keyboard = get_order_list_keyboard(orders)
             await message.answer(
-                f"📋 Заказы пользователя @{username}:",
+                f"📋 Заказы пользователя @{username}:\n\n"
+                f"Формат: 👤 Пользователь | 💵 Сумма | 📊 Статус заказа | 💰 Статус оплаты",
                 reply_markup=keyboard
             )
     except Exception as e:
@@ -536,7 +541,7 @@ def format_order_details(order: dict) -> str:
     
     # Формируем текст
     text = (
-        f"🛍 Заказ #{order_id[:8]}...\n\n"
+        f"🛍 Заказ #{order_id[:8]}\n\n"
         f"📅 Дата создания: {created_at}\n"
         f"👤 Пользователь: @{telegram_username}\n"
         f"📱 Телефон: {phone_number}\n"
@@ -569,7 +574,8 @@ async def handle_pagination(callback: CallbackQuery, **data):
         
         keyboard = get_order_list_keyboard(orders, page=page)
         await callback.message.edit_text(
-            "📋 Список заказов:",
+            "📋 Список заказов:\n\n"
+            "Формат: 👤 Пользователь | 💵 Сумма | 📊 Статус заказа | 💰 Статус оплаты",
             reply_markup=keyboard
         )
     except Exception as e:

@@ -44,13 +44,14 @@ def get_order_list_keyboard(orders: List[Dict], page: int = 0, page_size: int = 
     # Добавляем кнопки для каждого заказа
     for order in current_page_orders:
         order_id = order.get('id', '')
-        status = order.get('status', '')
+        status = order.get('status', '').upper() if order.get('status') else 'Неизвестно'
+        payment_status = order.get('payment_status', '').upper() if order.get('payment_status') else 'Неизвестно'
         total = order.get('total_amount', '0')
         username = order.get('telegram_username', 'Неизвестно')
         
         keyboard.append([
             InlineKeyboardButton(
-                text=f"🛍 #{order_id[:8]}... | {username} | {total}₽ | {status}", 
+                text=f"👤 {username} | 💵 {total}₽ | 📊 {status} | 💰 {payment_status}", 
                 callback_data=f"order:view:{order_id}"
             )
         ])
