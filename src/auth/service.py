@@ -302,54 +302,54 @@ class AuthService:
         await self.session.refresh(user)
         return user
     
-    async def create_test_user(
-        self,
-        user_id: str,
-        first_name: str,
-        last_name: str | None = None,
-        tg_name: str | None = None,
-        is_admin: bool = False
-    ) -> Users:
-        """
-        Создает тестового пользователя для отладки
+    # async def create_test_user(
+    #     self,
+    #     user_id: str,
+    #     first_name: str,
+    #     last_name: str | None = None,
+    #     tg_name: str | None = None,
+    #     is_admin: bool = False
+    # ) -> Users:
+    #     """
+    #     Создает тестового пользователя для отладки
         
-        Args:
-            user_id: ID пользователя
-            first_name: Имя пользователя
-            last_name: Фамилия пользователя (опционально)
-            tg_name: Имя пользователя в Telegram (опционально)
-            is_admin: Является ли пользователь администратором
+    #     Args:
+    #         user_id: ID пользователя
+    #         first_name: Имя пользователя
+    #         last_name: Фамилия пользователя (опционально)
+    #         tg_name: Имя пользователя в Telegram (опционально)
+    #         is_admin: Является ли пользователь администратором
             
-        Returns:
-            Users: Созданный объект пользователя
-        """
-        # Проверяем, существует ли пользователь
-        user = await self.session.get(Users, user_id)
+    #     Returns:
+    #         Users: Созданный объект пользователя
+    #     """
+    #     # Проверяем, существует ли пользователь
+    #     user = await self.session.get(Users, user_id)
         
-        if user:
-            # Обновляем существующего пользователя
-            user.first_name = first_name
-            if last_name is not None:
-                user.last_name = last_name
-            if tg_name is not None:
-                user.tg_name = tg_name
-            if is_admin:
-                user.role = UserRole.ADMIN
-        else:
-            # Создаем нового пользователя
-            user = Users(
-                id=user_id,
-                first_name=first_name,
-                last_name=last_name,
-                tg_name=tg_name or first_name,
-                role=UserRole.ADMIN if is_admin else UserRole.USER
-            )
-            self.session.add(user)
+    #     if user:
+    #         # Обновляем существующего пользователя
+    #         user.first_name = first_name
+    #         if last_name is not None:
+    #             user.last_name = last_name
+    #         if tg_name is not None:
+    #             user.tg_name = tg_name
+    #         if is_admin:
+    #             user.role = UserRole.ADMIN
+    #     else:
+    #         # Создаем нового пользователя
+    #         user = Users(
+    #             id=user_id,
+    #             first_name=first_name,
+    #             last_name=last_name,
+    #             tg_name=tg_name or first_name,
+    #             role=UserRole.ADMIN if is_admin else UserRole.USER
+    #         )
+    #         self.session.add(user)
         
-        await self.session.commit()
-        await self.session.refresh(user)
+    #     await self.session.commit()
+    #     await self.session.refresh(user)
         
-        return user
+    #     return user
 
     async def get_user_by_username(self, username: str) -> Optional[UserResponse]:
         """

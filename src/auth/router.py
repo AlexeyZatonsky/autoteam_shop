@@ -116,66 +116,66 @@ async def update_user_profile(
     return updated_user
 
 
-@router.post(
-    "/test-login", 
-    response_model=TokenResponse,
-    responses={
-        200: {
-            "description": "Успешная авторизация",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                        "token_type": "bearer",
-                        "user": {
-                            "id": "123456789",
-                            "first_name": "Иван",
-                            "last_name": "Иванов",
-                            "tg_name": "ivanov",
-                            "role": "user",
-                            "is_admin": False,
-                            "phone": None,
-                            "default_delivery_address": None,
-                            "language_code": None
-                        }
-                    }
-                }
-            }
-        }
-    }
-)
-async def test_login(
-    user_id: str = Form(..., description="ID пользователя в Telegram"),
-    first_name: str = Form(..., description="Имя пользователя"),
-    last_name: str = Form(None, description="Фамилия пользователя (опционально)"),
-    tg_name: str = Form(..., description="Username пользователя в Telegram"),
-    is_admin: bool = Form(False, description="Является ли пользователь администратором"),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """
-    Тестовая авторизация для Swagger UI.
+# @router.post(
+#     "/test-login", 
+#     response_model=TokenResponse,
+#     responses={
+#         200: {
+#             "description": "Успешная авторизация",
+#             "content": {
+#                 "application/json": {
+#                     "example": {
+#                         "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+#                         "token_type": "bearer",
+#                         "user": {
+#                             "id": "123456789",
+#                             "first_name": "Иван",
+#                             "last_name": "Иванов",
+#                             "tg_name": "ivanov",
+#                             "role": "user",
+#                             "is_admin": False,
+#                             "phone": None,
+#                             "default_delivery_address": None,
+#                             "language_code": None
+#                         }
+#                     }
+#                 }
+#             }
+#         }
+#     }
+# )
+# async def test_login(
+#     user_id: str = Form(..., description="ID пользователя в Telegram"),
+#     first_name: str = Form(..., description="Имя пользователя"),
+#     last_name: str = Form(None, description="Фамилия пользователя (опционально)"),
+#     tg_name: str = Form(..., description="Username пользователя в Telegram"),
+#     is_admin: bool = Form(False, description="Является ли пользователь администратором"),
+#     auth_service: AuthService = Depends(get_auth_service)
+# ):
+#     """
+#     Тестовая авторизация для Swagger UI.
     
-    Создает тестового пользователя и возвращает JWT-токен.
-    Используйте только для отладки!
-    """
-    # Создаем тестового пользователя
-    user = await auth_service.create_test_user(
-        user_id=user_id,
-        first_name=first_name,
-        last_name=last_name,
-        tg_name=tg_name,
-        is_admin=is_admin
-    )
+#     Создает тестового пользователя и возвращает JWT-токен.
+#     Используйте только для отладки!
+#     """
+#     # Создаем тестового пользователя
+#     user = await auth_service.create_test_user(
+#         user_id=user_id,
+#         first_name=first_name,
+#         last_name=last_name,
+#         tg_name=tg_name,
+#         is_admin=is_admin
+#     )
     
-    # Создаем JWT-токен
-    access_token = auth_service.create_access_token({"sub": str(user.id)})
+#     # Создаем JWT-токен
+#     access_token = auth_service.create_access_token({"sub": str(user.id)})
     
-    # Формируем ответ
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=UserResponse.from_orm(user)
-    )
+#     # Формируем ответ
+#     return TokenResponse(
+#         access_token=access_token,
+#         token_type="bearer",
+#         user=UserResponse.from_orm(user)
+#     )
 
 
 async def check_admin_access(
