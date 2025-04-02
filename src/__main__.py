@@ -14,8 +14,6 @@ async def main():
             'src.app:app',
             host=settings.SERVER_HOST,
             port=settings.SERVER_PORT,
-	    ssl_keyfile="src/key.pem",
-	    ssl_certfile="src/cert.pem",
 	    reload=True
         )
     )
