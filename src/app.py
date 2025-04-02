@@ -23,6 +23,7 @@ app = FastAPI(
     description="API для магазина автозапчастей",
     version="0.1.0",
     lifespan=lifespan,
+    root_path="/api"
 )
 
 # # Добавляем информацию о безопасности
