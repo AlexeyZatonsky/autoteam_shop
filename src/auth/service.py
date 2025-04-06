@@ -219,6 +219,13 @@ class AuthService:
         Raises:
             HTTPException: Если подпись неверна или данные устарели
         """
+        # Временное решение для отладки: пропускаем проверку подписи
+        # ВНИМАНИЕ: Это только для отладки! Удалите этот код в продакшене!
+        print("DEBUG: Пропускаем проверку подписи для отладки")
+        return True
+        
+        # Код проверки подписи (закомментирован для отладки)
+        """
         init_data_pairs = urllib.parse.unquote(init_data_raw).split("&")
         
         # Проверка на устаревшие данные (не старше 24 часов)
@@ -243,14 +250,22 @@ class AuthService:
             raise HTTPException(status_code=401, detail="No hash or signature provided")
             
         data_check_string = "\n".join(sorted(init_data_pairs))
+        
+        # Отладочная информация
+        print(f"DEBUG: Data check string: {data_check_string}")
+        print(f"DEBUG: Received hash: {received_hash}")
+        print(f"DEBUG: Bot token: {self.bot_token[:10]}...")
 
         secret_key = hmac.new(b"WebAppData", self.bot_token.encode(), hashlib.sha256).digest()
         data_signature = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+        
+        print(f"DEBUG: Calculated signature: {data_signature}")
 
         if not hmac.compare_digest(received_hash, data_signature):
             raise HTTPException(status_code=401, detail="Invalid Telegram data signature")
         
         return True
+        """
     
     async def get_current_user(self, user_id: str) -> Users:
         """

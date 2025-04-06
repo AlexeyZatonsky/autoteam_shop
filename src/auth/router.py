@@ -4,6 +4,8 @@ from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 import urllib.parse
 import json
+import hmac
+import hashlib
 
 from .schemas import UserProfile, UserResponse, TokenResponse
 from .service import AuthService
@@ -82,6 +84,73 @@ async def telegram_login_debug(
         return {
             "error": str(e),
             "message": "Ошибка при декодировании данных"
+        }
+
+
+@router.post("/debug-signature", response_model=dict)
+async def debug_signature(
+    init_data: str = Body(..., description="Строка initData из Telegram Web App для отладки подписи")
+):
+    """
+    Отладочный эндпоинт для проверки подписи Telegram.
+    
+    Принимает строку initData из Telegram Web App и возвращает информацию о процессе проверки подписи.
+    Используйте только для отладки!
+    """
+    try:
+        # Декодируем URL-encoded строку
+        init_data_segments = urllib.parse.unquote(init_data).split("&")
+        init_data_dict = {}
+
+        for segment in init_data_segments:
+            key, value = segment.split("=", 1)
+            init_data_dict[key] = value
+            
+        # Если есть user, декодируем его из JSON
+        if "user" in init_data_dict and init_data_dict["user"]:
+            init_data_dict["user"] = json.loads(init_data_dict["user"])
+        
+        # Получаем подпись или хеш
+        signature = init_data_dict.get("signature")
+        hash_value = init_data_dict.get("hash")
+        
+        # Создаем строку для проверки подписи
+        init_data_pairs = urllib.parse.unquote(init_data).split("&")
+        
+        # Удаляем хеш и подпись из списка
+        hash_pair = next((pair for pair in init_data_pairs if pair.startswith("hash=")), None)
+        signature_pair = next((pair for pair in init_data_pairs if pair.startswith("signature=")), None)
+        
+        if hash_pair:
+            init_data_pairs.remove(hash_pair)
+        if signature_pair:
+            init_data_pairs.remove(signature_pair)
+            
+        data_check_string = "\n".join(sorted(init_data_pairs))
+        
+        # Получаем токен бота из настроек
+        bot_token = settings.TG_BOT_TOKEN
+        
+        # Создаем подпись
+        secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+        calculated_signature = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+        
+        # Проверяем подпись
+        received_signature = signature or hash_value
+        is_valid = hmac.compare_digest(received_signature, calculated_signature) if received_signature else False
+            
+        return {
+            "decoded_data": init_data_dict,
+            "data_check_string": data_check_string,
+            "received_signature": received_signature,
+            "calculated_signature": calculated_signature,
+            "is_valid": is_valid,
+            "message": "Это отладочный эндпоинт. Не используйте его в продакшене!"
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "message": "Ошибка при проверке подписи"
         }
 
 
