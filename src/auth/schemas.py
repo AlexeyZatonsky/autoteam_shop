@@ -5,11 +5,11 @@ from .models import UserRole
 class TelegramUser(BaseModel):
     id: int
     first_name: str
-    last_name: str | None = None
+    last_name: str | None = ""
     username: str | None = None
     language_code: str | None = None
     photo_url: str | None = None
-    added_to_attachment_menu: bool = False
+    added_to_attachment_menu: bool | None = None
     allows_write_to_pm: bool = False
     is_premium: bool = False
 
@@ -71,4 +71,22 @@ class InitData(BaseModel):
     start_param: str | None = None
     can_send_after: str | None = None
     auth_date: int
-    hash: str 
+    signature: str | None = None
+    hash: str | None = None
+
+    @classmethod
+    def from_orm(cls, obj):
+        user_dict = {
+            "query_id": obj.query_id,
+            "user": obj.user,
+            "receiver": obj.receiver,
+            "chat": obj.chat,
+            "chat_type": obj.chat_type,
+            "chat_instance": obj.chat_instance,
+            "start_param": obj.start_param,
+            "can_send_after": obj.can_send_after,
+            "auth_date": obj.auth_date,
+            "signature": obj.signature,
+            "hash": obj.hash
+        }
+        return cls(**user_dict) 

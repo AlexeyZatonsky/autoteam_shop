@@ -95,11 +95,12 @@ class AuthService:
             HTTPException: Если аутентификация не удалась
         """
         try:
-            # Декодируем и проверяем данные из Telegram
+            # Декодируем данные из Telegram
             init_data = self.decode_init_data(init_data_raw)
             
-            # Проверяем подпись
-            self.validate_telegram_data(init_data_raw, init_data.hash)
+            # Проверяем подпись (используем либо hash, либо signature)
+            signature = init_data.signature or init_data.hash
+            self.validate_telegram_data(init_data_raw, signature)
             
             # Получаем или создаем пользователя
             user = await self.get_or_create_user(init_data)
@@ -159,42 +160,58 @@ class AuthService:
         if "user" not in init_data_dict or init_data_dict["user"] == "":
             raise HTTPException(status_code=401, detail="User is required")
 
-        user_dict = json.loads(init_data_dict["user"])
-        user = TelegramUser(
-            id=user_dict.get("id"),
-            first_name=user_dict.get("first_name"),
-            last_name=user_dict.get("last_name", None),
-            username=user_dict.get("username", None),
-            language_code=user_dict.get("language_code", None),
-            added_to_attachment_menu=user_dict.get("added_to_attachment_menu", False),
-            allows_write_to_pm=user_dict.get("allows_write_to_pm", False),
-            is_premium=user_dict.get("is_premium", False),
-            photo_url=user_dict.get("photo_url", None)
-        )
+        try:
+            user_dict = json.loads(init_data_dict["user"])
+            # Обработка пустой строки в last_name
+            if "last_name" in user_dict and user_dict["last_name"] == "":
+                user_dict["last_name"] = None
+                
+            user = TelegramUser(
+                id=user_dict.get("id"),
+                first_name=user_dict.get("first_name"),
+                last_name=user_dict.get("last_name"),
+                username=user_dict.get("username"),
+                language_code=user_dict.get("language_code"),
+                is_premium=user_dict.get("is_premium", False),
+                allows_write_to_pm=user_dict.get("allows_write_to_pm", False),
+                photo_url=user_dict.get("photo_url")
+            )
+        except json.JSONDecodeError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid JSON in user data: {str(e)}"
+            )
         
         # Преобразуем auth_date из строки в целое число
-        auth_date = int(init_data_dict.get("auth_date")) if init_data_dict.get("auth_date") else None
+        try:
+            auth_date = int(init_data_dict.get("auth_date", 0))
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid auth_date format"
+            )
 
         return InitData(
             query_id=init_data_dict.get("query_id"),
             user=user,
-            receiver=init_data_dict.get("receiver", None),
-            chat=init_data_dict.get("chat", None),
-            chat_type=init_data_dict.get("chat_type", None),
-            chat_instance=init_data_dict.get("chat_instance", None),
-            start_param=init_data_dict.get("start_param", None),
-            can_send_after=init_data_dict.get("can_send_after", None),
+            receiver=init_data_dict.get("receiver"),
+            chat=init_data_dict.get("chat"),
+            chat_type=init_data_dict.get("chat_type"),
+            chat_instance=init_data_dict.get("chat_instance"),
+            start_param=init_data_dict.get("start_param"),
+            can_send_after=init_data_dict.get("can_send_after"),
             auth_date=auth_date,
+            signature=init_data_dict.get("signature"),
             hash=init_data_dict.get("hash")
         )
     
-    def validate_telegram_data(self, init_data_raw: str, received_hash: str) -> bool:
+    def validate_telegram_data(self, init_data_raw: str, received_hash: str | None = None) -> bool:
         """
         Проверяет подпись данных из Telegram
         
         Args:
             init_data_raw: URL-encoded строка initData из Telegram Web App
-            received_hash: Хеш, полученный из данных Telegram
+            received_hash: Хеш или подпись, полученные из данных Telegram
             
         Returns:
             bool: True, если подпись верна
@@ -212,11 +229,20 @@ class AuthService:
             if current_time - auth_date > 86400:  # 24 часа в секундах
                 raise HTTPException(status_code=401, detail="Authorization data is expired")
         
-        # Удаляем хеш из списка, так как мы не можем проверить хеш хеша
+        # Удаляем хеш и подпись из списка
         hash_pair = next((pair for pair in init_data_pairs if pair.startswith("hash=")), None)
+        signature_pair = next((pair for pair in init_data_pairs if pair.startswith("signature=")), None)
+        
         if hash_pair:
             init_data_pairs.remove(hash_pair)
-        data_check_string = "\n".join(sorted(init_data_pairs))  # Сортируем для обеспечения одинакового порядка ключей
+        if signature_pair:
+            init_data_pairs.remove(signature_pair)
+            received_hash = signature_pair.split("=")[1]  # Используем подпись вместо хеша
+            
+        if not received_hash:
+            raise HTTPException(status_code=401, detail="No hash or signature provided")
+            
+        data_check_string = "\n".join(sorted(init_data_pairs))
 
         secret_key = hmac.new(b"WebAppData", self.bot_token.encode(), hashlib.sha256).digest()
         data_signature = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
