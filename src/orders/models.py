@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy.orm import relationship
 import uuid
 from ..database import Base
-from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum
+from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum, PaymentMethodEnum
 
 
 
@@ -17,6 +17,7 @@ class Order(Base):
     total_amount = Column(NUMERIC(10, 2), nullable=False)
     status = Column(SQLAlchemyEnum(OrderStatusEnum), nullable=False, default=OrderStatusEnum.NEW)
     payment_status = Column(SQLAlchemyEnum(PaymentStatusEnum), nullable=False, default=PaymentStatusEnum.NOT_PAID)
+    payment_method = Column(SQLAlchemyEnum(PaymentMethodEnum), nullable=False)  # Способ оплаты
     delivery_method = Column(SQLAlchemyEnum(DeliveryMethodEnum), nullable=False)
     phone_number = Column(String, nullable=False)
     delivery_address = Column(String, nullable=True)

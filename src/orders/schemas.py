@@ -2,7 +2,7 @@ from pydantic import BaseModel, UUID4, Field
 from decimal import Decimal
 from datetime import datetime
 from typing import List
-from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum
+from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum, PaymentMethodEnum
 
 
 class OrderItemBase(BaseModel):
@@ -12,8 +12,15 @@ class OrderItemBase(BaseModel):
     product_name: str
 
 
-class OrderItemCreate(OrderItemBase):
-    pass
+class OrderBase(BaseModel):
+    delivery_method: DeliveryMethodEnum
+    payment_method: PaymentMethodEnum
+    phone_number: str
+    delivery_address: str | None = None
+
+
+class OrderCreate(OrderBase):
+    items: List[OrderItemBase]
 
 
 class OrderItemResponse(OrderItemBase):
@@ -22,26 +29,6 @@ class OrderItemResponse(OrderItemBase):
 
     class Config:
         from_attributes = True
-
-
-class OrderBase(BaseModel):
-    delivery_method: DeliveryMethodEnum = Field(
-        description="Способ доставки"
-    )
-
-
-
-
-class OrderCreate(OrderBase):
-    pass
-
-
-class OrderUpdate(BaseModel):
-    status: OrderStatusEnum | None = None
-    payment_status: PaymentStatusEnum | None = None
-    delivery_method: DeliveryMethodEnum | None = None
-    phone_number: str | None = None
-    delivery_address: str | None = None
 
 
 class OrderResponse(OrderBase):

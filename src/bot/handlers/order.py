@@ -515,6 +515,7 @@ def format_order_details(order: dict) -> str:
     order_id = order.get("id", "Неизвестно")
     status = order.get("status", "Неизвестно").upper() if order.get("status") else "Неизвестно"
     payment_status = order.get("payment_status", "Неизвестно").upper() if order.get("payment_status") else "Неизвестно"
+    payment_method = order.get("payment_method", "Неизвестно").upper() if order.get("payment_method") else "Неизвестно"
     total_amount = order.get("total_amount", "0")
     created_at = order.get("created_at", "Неизвестно")
     delivery_method = order.get("delivery_method", "Неизвестно").upper() if order.get("delivery_method") else "Неизвестно"
@@ -547,6 +548,7 @@ def format_order_details(order: dict) -> str:
         f"📱 Телефон: {phone_number}\n"
         f"🚚 Способ доставки: {delivery_method}\n"
         f"📍 Адрес доставки: {delivery_address}\n"
+        f"💳 Способ оплаты: {payment_method}\n"
         f"💰 Статус оплаты: {payment_status}\n"
         f"📊 Статус заказа: {status}\n"
         f"💵 Сумма заказа: {total_amount}₽\n\n"

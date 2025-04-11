@@ -11,7 +11,7 @@ from ..auth.schemas import UserResponse
 from ..cart.service import CartService
 from .service import OrderService
 from .schemas import OrderCreate, OrderUpdate, OrderResponse
-from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum
+from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum, PaymentMethodEnum
 
 
 router = APIRouter(

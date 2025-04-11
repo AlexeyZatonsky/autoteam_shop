@@ -25,5 +25,6 @@ class DeliveryMethodEnum(str, enum.Enum):
     POST = "Почта"
 
 
-
-#Сдэк, Пэк, Байкал, Кит, Деловые линии, самовывоз, почта
+class PaymentMethodEnum(str, enum.Enum):
+    PAYMENT_ON_DELIVERY = "Оплата при получении"
+    ONLINE_PAYMENT = "Оплата онлайн"
