@@ -1,7 +1,7 @@
 from pydantic import BaseModel, UUID4, Field
 from decimal import Decimal
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum, PaymentMethodEnum
 
 
@@ -14,13 +14,12 @@ class OrderItemBase(BaseModel):
 
 class OrderBase(BaseModel):
     delivery_method: DeliveryMethodEnum
-    payment_method: PaymentMethodEnum
-    phone_number: str
-    delivery_address: str | None = None
+    payment_method: Optional[PaymentMethodEnum] = None
+
 
 
 class OrderCreate(OrderBase):
-    items: List[OrderItemBase]
+    pass
 
 
 class OrderItemResponse(OrderItemBase):
