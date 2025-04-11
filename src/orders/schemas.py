@@ -46,3 +46,12 @@ class OrderResponse(OrderBase):
 
     class Config:
         from_attributes = True
+
+
+class OrderUpdate(BaseModel):
+    status: OrderStatusEnum | None = None
+    payment_status: PaymentStatusEnum | None = None
+    delivery_method: DeliveryMethodEnum | None = None
+    phone_number: str | None = None
+    delivery_address: str | None = None
+    payment_method: PaymentMethodEnum | None = None
