@@ -13,11 +13,19 @@ from ..auth.router import get_current_user
 from ..products.models import Product
 from .models import Cart, CartItem
 from .schemas import CartItemCreate, CartItemUpdate
+from ..products.service import ProductService
 
 class CartService:
 
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    def _process_cart_items(self, cart: Cart) -> None:
+        """Обрабатывает элементы корзины, добавляя полные URL для изображений"""
+        if cart and cart.items:
+            for item in cart.items:
+                if item.product and item.product.images:
+                    item.product.images = [ProductService.get_full_image_url(path) for path in item.product.images]
 
     async def get_or_create_cart(self, user: UserResponse) -> Cart:
         '''Получение или создание корзины для пользователя'''
@@ -40,6 +48,8 @@ class CartService:
             )
             cart = cart.unique().scalar_one()
         
+        # Обрабатываем изображения
+        self._process_cart_items(cart)
         return cart
 
 
