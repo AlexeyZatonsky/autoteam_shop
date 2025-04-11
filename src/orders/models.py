@@ -17,7 +17,7 @@ class Order(Base):
     total_amount = Column(NUMERIC(10, 2), nullable=False)
     status = Column(SQLAlchemyEnum(OrderStatusEnum), nullable=False, default=OrderStatusEnum.NEW)
     payment_status = Column(SQLAlchemyEnum(PaymentStatusEnum), nullable=False, default=PaymentStatusEnum.NOT_PAID)
-    payment_method = Column(SQLAlchemyEnum(PaymentMethodEnum), nullable=False)  # Способ оплаты
+    payment_method = Column(SQLAlchemyEnum(PaymentMethodEnum), nullable=True)  # Способ оплаты
     delivery_method = Column(SQLAlchemyEnum(DeliveryMethodEnum), nullable=False)
     phone_number = Column(String, nullable=False)
     delivery_address = Column(String, nullable=True)
