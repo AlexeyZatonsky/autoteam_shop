@@ -17,26 +17,6 @@ class OrderCreate(BaseModel):
     payment_method: Optional[str] = None
     phone_number: str
     delivery_address: str
-    
-    def model_dump(self, **kwargs):
-        data = super().model_dump(**kwargs)
-        
-        # Преобразование строковых значений в значения перечислений
-        if data.get('delivery_method'):
-            # Найти значение по ключу или искать ключ по значению
-            for enum_key, enum_value in DeliveryMethodEnum.__members__.items():
-                if data['delivery_method'] == enum_key or data['delivery_method'] == enum_value.value:
-                    data['delivery_method'] = enum_key
-                    break
-                    
-        if data.get('payment_method'):
-            # Найти значение по ключу или искать ключ по значению
-            for enum_key, enum_value in PaymentMethodEnum.__members__.items():
-                if data['payment_method'] == enum_key or data['payment_method'] == enum_value.value:
-                    data['payment_method'] = enum_key
-                    break
-                    
-        return data
 
 
 class OrderItemResponse(OrderItemBase):
