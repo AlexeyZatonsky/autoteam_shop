@@ -366,3 +366,11 @@ async def get_order_admin(
     if not order:
         raise HTTPException(status_code=404, detail="Заказ не найден")
     return order
+
+
+@router.get("/payment-methods", response_model=List[str])
+async def get_payment_methods():
+    """
+    Получение списка возможных методов оплаты.
+    """
+    return [method.value for method in PaymentMethodEnum]

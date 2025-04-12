@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from .models import Order, OrderItem
 from .schemas import OrderCreate, OrderUpdate
 from ..cart.service import CartService
-from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum
+from .enums import OrderStatusEnum, PaymentStatusEnum, DeliveryMethodEnum, PaymentMethodEnum
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from uuid import UUID
@@ -53,9 +53,33 @@ class OrderService:
             total_amount = await self.cart_service.calculate_cart_total(cart.id)
             logger.info(f"Общая стоимость заказа: {total_amount}")
             
-            # Используем данные из order_data
+            # Получаем данные из order_data
             phone_number = order_data.phone_number
             delivery_address = order_data.delivery_address
+            
+            # Преобразуем строковые значения в значения перечислений
+            delivery_method = None
+            for enum_item in DeliveryMethodEnum:
+                if order_data.delivery_method == enum_item.name or order_data.delivery_method == enum_item.value:
+                    delivery_method = enum_item
+                    break
+            
+            if not delivery_method:
+                logger.error(f"Неизвестный метод доставки: {order_data.delivery_method}")
+                raise HTTPException(status_code=400, detail=f"Неизвестный метод доставки: {order_data.delivery_method}")
+            
+            payment_method = None
+            if order_data.payment_method:
+                for enum_item in PaymentMethodEnum:
+                    if order_data.payment_method == enum_item.name or order_data.payment_method == enum_item.value:
+                        payment_method = enum_item
+                        break
+                
+                if not payment_method:
+                    logger.error(f"Неизвестный метод оплаты: {order_data.payment_method}")
+                    raise HTTPException(status_code=400, detail=f"Неизвестный метод оплаты: {order_data.payment_method}")
+            else:
+                payment_method = PaymentMethodEnum.PAYMENT_ON_DELIVERY
             
             # Начинаем транзакцию
             async with self.session.begin_nested():
@@ -65,8 +89,8 @@ class OrderService:
                     total_amount=total_amount,
                     status=OrderStatusEnum.NEW,
                     payment_status=PaymentStatusEnum.NOT_PAID,
-                    delivery_method=order_data.delivery_method,
-                    payment_method=order_data.payment_method,
+                    delivery_method=delivery_method,
+                    payment_method=payment_method,
                     phone_number=phone_number,
                     delivery_address=delivery_address,
                     telegram_username=user.tg_name
