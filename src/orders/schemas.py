@@ -17,6 +17,7 @@ class OrderCreate(BaseModel):
     delivery_method: DeliveryMethodEnum = Field(default=DeliveryMethodEnum.SDEK)
     payment_method: PaymentMethodEnum = Field(default=PaymentMethodEnum.PAYMENT_ON_DELIVERY)
     phone_number: str
+    full_name: str  # Полное имя получателя заказа
     delivery_address: str
     
     model_config = ConfigDict(use_enum_values=True)
@@ -33,6 +34,7 @@ class OrderResponse(BaseModel):
     id: UUID4
     user_id: str
     telegram_username: str
+    full_name: str  # Полное имя получателя заказа
     total_amount: Decimal = Field(decimal_places=2)
     status: OrderStatusEnum
     payment_status: PaymentStatusEnum
@@ -53,6 +55,7 @@ class OrderUpdate(BaseModel):
     delivery_method: DeliveryMethodEnum
     payment_method: PaymentMethodEnum
     phone_number: str
+    full_name: str  # Полное имя получателя заказа
     delivery_address: str
     
     model_config = ConfigDict(use_enum_values=True)

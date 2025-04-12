@@ -522,6 +522,7 @@ def format_order_details(order: dict) -> str:
     phone_number = order.get("phone_number", "Не указан")
     delivery_address = order.get("delivery_address", "Не указан")
     telegram_username = order.get("telegram_username", "Неизвестно")
+    full_name = order.get("full_name", "Не указано")
     
     # Форматируем дату создания
     if isinstance(created_at, str):
@@ -545,6 +546,7 @@ def format_order_details(order: dict) -> str:
         f"🛍 Заказ #{order_id[:8]}\n\n"
         f"📅 Дата создания: {created_at}\n"
         f"👤 Пользователь: @{telegram_username}\n"
+        f"👥 Получатель: {full_name}\n"
         f"📱 Телефон: {phone_number}\n"
         f"🚚 Способ доставки: {delivery_method}\n"
         f"📍 Адрес доставки: {delivery_address}\n"
@@ -675,9 +677,10 @@ async def user_info(callback: CallbackQuery, **data):
 def format_user_info(user_info: dict, order: dict) -> str:
     """Форматирует полную информацию о пользователе для отображения"""
     username = user_info.get("tg_name", order.get("telegram_username", "Неизвестно"))
-    first_name = user_info.get("first_name", "")
-    last_name = user_info.get("last_name", "")
-    full_name = f"{first_name} {last_name}".strip() or "Не указано"
+    tg_first_name = user_info.get("first_name", "")
+    tg_last_name = user_info.get("last_name", "")
+    tg_full_name = f"{tg_first_name} {tg_last_name}".strip() or "Не указано"
+    recipient_name = order.get("full_name", "Не указано")
     email = user_info.get("email", "Не указан")
     phone = order.get("phone_number", "Не указан")
     address = order.get("delivery_address", "Не указан")
@@ -689,7 +692,8 @@ def format_user_info(user_info: dict, order: dict) -> str:
     # Формируем текст
     text = (
         f"👤 Пользователь: @{username}\n"
-        f"📝 Имя: {full_name}\n"
+        f"📝 Имя пользователя в Telegram: {tg_full_name}\n"
+        f"📝 Имя получателя: {recipient_name}\n"
         f"📧 Email: {email}\n"
         f"📱 Телефон: {phone}\n"
         f"📍 Адрес доставки: {address}\n\n"
@@ -705,6 +709,7 @@ def format_basic_user_info(order: dict) -> str:
     """Форматирует базовую информацию о пользователе из заказа"""
     username = order.get("telegram_username", "Неизвестно")
     user_id = order.get("user_id", "Неизвестно")
+    recipient_name = order.get("full_name", "Не указано")
     phone = order.get("phone_number", "Не указан")
     address = order.get("delivery_address", "Не указан")
     
@@ -712,6 +717,7 @@ def format_basic_user_info(order: dict) -> str:
     text = (
         f"👤 Пользователь: @{username}\n"
         f"🆔 ID пользователя: {user_id}\n"
+        f"📝 Имя получателя: {recipient_name}\n"
         f"📱 Телефон: {phone}\n"
         f"📍 Адрес доставки: {address}\n"
     )

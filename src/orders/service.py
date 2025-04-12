@@ -51,6 +51,7 @@ class OrderService:
                 order = Order(
                     user_id=user.id,
                     telegram_username=user.tg_name,
+                    full_name=order_data.full_name,
                     total_amount=total_amount,
                     status=OrderStatusEnum.NEW,
                     payment_status=PaymentStatusEnum.NOT_PAID,

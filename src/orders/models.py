@@ -14,13 +14,14 @@ class Order(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(String, nullable=False, index=True)  # ID пользователя в Telegram
     telegram_username = Column(String, nullable=False, index=True)  # Имя пользователя в Telegram
+    full_name = Column(String, nullable=False)  # Полное имя получателя заказа
     total_amount = Column(NUMERIC(10, 2), nullable=False)
     status = Column(SQLAlchemyEnum(OrderStatusEnum, native_enum=True), nullable=False, default=OrderStatusEnum.NEW)
     payment_status = Column(SQLAlchemyEnum(PaymentStatusEnum, native_enum=True), nullable=False, default=PaymentStatusEnum.NOT_PAID)
     payment_method = Column(SQLAlchemyEnum(PaymentMethodEnum, native_enum=True), nullable=True, default=PaymentMethodEnum.PAYMENT_ON_DELIVERY)  # Способ оплаты
     delivery_method = Column(SQLAlchemyEnum(DeliveryMethodEnum, native_enum=True), nullable=False)
     phone_number = Column(String, nullable=False)
-    delivery_address = Column(String, nullable=True)
+    delivery_address = Column(String, nullable=False)  # Делаем адрес доставки обязательным
     created_at = Column(TIMESTAMP, default=datetime.now(), nullable=False)
     updated_at = Column(TIMESTAMP, default=datetime.now(), onupdate=datetime.now(), nullable=False)
     
