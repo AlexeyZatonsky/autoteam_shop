@@ -11,12 +11,11 @@ class OrderItemBase(BaseModel):
     price: Decimal = Field(decimal_places=2)
     product_name: str
     
-    model_config = ConfigDict(use_enum_values=True)
 
 
 class OrderCreate(BaseModel):
-    delivery_method: str
-    payment_method: Optional[str] = None
+    delivery_method: DeliveryMethodEnum = Field(default=DeliveryMethodEnum.SDEK)
+    payment_method: PaymentMethodEnum = Field(default=PaymentMethodEnum.PAYMENT_ON_DELIVERY)
     phone_number: str
     delivery_address: str
     
@@ -49,11 +48,11 @@ class OrderResponse(BaseModel):
 
 
 class OrderUpdate(BaseModel):
-    status: OrderStatusEnum | None = None
-    payment_status: PaymentStatusEnum | None = None
-    delivery_method: DeliveryMethodEnum | None = None
-    payment_method: PaymentMethodEnum | None = None
-    phone_number: str | None = None
-    delivery_address: str | None = None
+    status: OrderStatusEnum
+    payment_status: PaymentStatusEnum
+    delivery_method: DeliveryMethodEnum
+    payment_method: PaymentMethodEnum
+    phone_number: str
+    delivery_address: str
     
     model_config = ConfigDict(use_enum_values=True)
