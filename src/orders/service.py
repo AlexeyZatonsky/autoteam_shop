@@ -83,7 +83,6 @@ class OrderService:
             logger.error(f"Ошибка при создании заказа: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Ошибка при создании заказа: {str(e)}")
 
-
     async def get_user_orders(self, user: UserResponse, skip: int = 0, limit: int = 10):
         """
         Получает список заказов пользователя
