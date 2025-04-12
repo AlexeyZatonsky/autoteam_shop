@@ -34,113 +34,55 @@ class OrderService:
         """
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"Начало создания заказа для пользователя {user.id}")
-        logger.info(f"Входящие данные: delivery_method={order_data.delivery_method}, payment_method={order_data.payment_method}")
-        
+        logger.info(f"Создание заказа: user={user.id}, delivery_method={order_data.delivery_method}, payment_method={order_data.payment_method}")
+
         try:
-            # Получаем корзину пользователя со всеми товарами
             cart = await self.cart_service.get_or_create_cart(user)
             if not cart:
                 raise HTTPException(status_code=404, detail="Корзина не найдена")
-            
-            # Проверяем наличие товаров в корзине
+
             cart_items = getattr(cart, 'items', [])
-            if not cart_items or len(cart_items) == 0:
+            if not cart_items:
                 raise HTTPException(status_code=400, detail="Корзина пуста")
-            
-            logger.info(f"Найдено {len(cart_items)} товаров в корзине")
-            
-            # Рассчитываем общую стоимость
+
             total_amount = await self.cart_service.calculate_cart_total(cart.id)
-            logger.info(f"Общая стоимость заказа: {total_amount}")
-            
-            # Получаем данные из order_data
-            phone_number = order_data.phone_number
-            delivery_address = order_data.delivery_address
-            
-            # Находим соответствующие перечисления по их значениям
-            delivery_method_value = order_data.delivery_method
-            delivery_method = None
-            
-            # Ищем метод доставки
-            try:
-                for enum_item in DeliveryMethodEnum:
-                    if enum_item.value == delivery_method_value:
-                        delivery_method = enum_item
-                        break
-                
-                if not delivery_method:
-                    delivery_method = DeliveryMethodEnum.SDEK
-                    logger.warning(f"Не найден метод доставки '{delivery_method_value}', используем значение по умолчанию: {delivery_method.value}")
-            except Exception as e:
-                delivery_method = DeliveryMethodEnum.SDEK
-                logger.error(f"Ошибка при определении метода доставки: {str(e)}")
-            
-            # Ищем метод оплаты
-            payment_method_value = order_data.payment_method or "Оплата при получении"
-            payment_method = None
-            
-            try:
-                for enum_item in PaymentMethodEnum:
-                    if enum_item.value == payment_method_value:
-                        payment_method = enum_item
-                        break
-                
-                if not payment_method:
-                    payment_method = PaymentMethodEnum.PAYMENT_ON_DELIVERY
-                    logger.warning(f"Не найден метод оплаты '{payment_method_value}', используем значение по умолчанию: {payment_method.value}")
-            except Exception as e:
-                payment_method = PaymentMethodEnum.PAYMENT_ON_DELIVERY
-                logger.error(f"Ошибка при определении метода оплаты: {str(e)}")
-            
-            logger.info(f"Выбранный метод доставки: {delivery_method.value}")
-            logger.info(f"Выбранный метод оплаты: {payment_method.value}")
-            
-            # Начинаем транзакцию
+
             async with self.session.begin_nested():
-                # Создаем заказ
                 order = Order(
                     user_id=user.id,
+                    telegram_username=user.tg_name,
                     total_amount=total_amount,
                     status=OrderStatusEnum.NEW,
                     payment_status=PaymentStatusEnum.NOT_PAID,
-                    delivery_method=delivery_method,
-                    payment_method=payment_method,
-                    phone_number=phone_number,
-                    delivery_address=delivery_address,
-                    telegram_username=user.tg_name
+                    delivery_method=order_data.delivery_method,
+                    payment_method=order_data.payment_method,
+                    phone_number=order_data.phone_number,
+                    delivery_address=order_data.delivery_address
                 )
                 self.session.add(order)
-                await self.session.flush()  # Получаем id заказа
-                
-                logger.info(f"Создан заказ с ID: {order.id}")
-                
-                # Создаем элементы заказа из элементов корзины
+                await self.session.flush()
+
                 for cart_item in cart_items:
-                    # Проверяем наличие необходимых данных
                     if not hasattr(cart_item, 'product') or not cart_item.product:
-                        logger.warning(f"Пропуск элемента корзины без продукта: {cart_item}")
+                        logger.warning(f"Пропуск товара без продукта: {cart_item}")
                         continue
-                    
+
                     product = cart_item.product
-                    order_item = OrderItem(
+                    self.session.add(OrderItem(
                         order_id=order.id,
                         product_id=cart_item.product_id,
                         product_name=product.name,
                         quantity=cart_item.quantity,
                         price=Decimal(str(product.price))
-                    )
-                    self.session.add(order_item)
-                    logger.info(f"Добавлен товар в заказ: {product.name}, количество: {cart_item.quantity}")
-            
-            # Очищаем корзину
+                    ))
+
             await self.cart_service.clear_cart(user)
-            
             return order
-            
+
         except Exception as e:
             logger.error(f"Ошибка при создании заказа: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Ошибка при создании заказа: {str(e)}")
+
 
     async def get_user_orders(self, user: UserResponse, skip: int = 0, limit: int = 10):
         """
