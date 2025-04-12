@@ -12,14 +12,11 @@ class OrderItemBase(BaseModel):
     product_name: str
 
 
-class OrderBase(BaseModel):
+class OrderCreate(BaseModel):
     delivery_method: DeliveryMethodEnum
     payment_method: Optional[PaymentMethodEnum] = None
-
-
-
-class OrderCreate(OrderBase):
-    pass
+    phone_number: str
+    delivery_address: str
 
 
 class OrderItemResponse(OrderItemBase):
@@ -30,13 +27,15 @@ class OrderItemResponse(OrderItemBase):
         from_attributes = True
 
 
-class OrderResponse(OrderBase):
+class OrderResponse(BaseModel):
     id: UUID4
     user_id: str
     telegram_username: str
     total_amount: Decimal = Field(decimal_places=2)
     status: OrderStatusEnum
     payment_status: PaymentStatusEnum
+    delivery_method: DeliveryMethodEnum
+    payment_method: Optional[PaymentMethodEnum] = None
     phone_number: str
     delivery_address: str | None
     created_at: datetime
@@ -51,6 +50,6 @@ class OrderUpdate(BaseModel):
     status: OrderStatusEnum | None = None
     payment_status: PaymentStatusEnum | None = None
     delivery_method: DeliveryMethodEnum | None = None
+    payment_method: PaymentMethodEnum | None = None
     phone_number: str | None = None
     delivery_address: str | None = None
-    payment_method: PaymentMethodEnum | None = None

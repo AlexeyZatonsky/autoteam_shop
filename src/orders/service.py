@@ -53,13 +53,9 @@ class OrderService:
             total_amount = await self.cart_service.calculate_cart_total(cart.id)
             logger.info(f"Общая стоимость заказа: {total_amount}")
             
-            
-            # Проверяем наличие обязательных данных
-            phone_number = user.phone
-            delivery_address = user.default_delivery_address
-            
-            if not phone_number:
-                raise HTTPException(status_code=400, detail="Укажите номер телефона в профиле")
+            # Используем данные из order_data
+            phone_number = order_data.phone_number
+            delivery_address = order_data.delivery_address
             
             # Начинаем транзакцию
             async with self.session.begin_nested():
@@ -70,6 +66,7 @@ class OrderService:
                     status=OrderStatusEnum.NEW,
                     payment_status=PaymentStatusEnum.NOT_PAID,
                     delivery_method=order_data.delivery_method,
+                    payment_method=order_data.payment_method,
                     phone_number=phone_number,
                     delivery_address=delivery_address,
                     telegram_username=user.tg_name
@@ -99,34 +96,12 @@ class OrderService:
             
             # Очищаем корзину
             await self.cart_service.clear_cart(user)
-            logger.info("Корзина очищена")
             
-            # Фиксируем транзакцию
-            await self.session.commit()
-            logger.info("Транзакция зафиксирована")
+            return order
             
-            # Получаем заказ со всеми связанными данными
-            result = await self.session.execute(
-                select(Order)
-                .where(Order.id == order.id)
-                .options(joinedload(Order.items))
-            )
-            return result.unique().scalar_one()
-            
-        except HTTPException as he:
-            logger.error(f"HTTP ошибка: {he.detail}")
-            await self.session.rollback()
-            raise he
         except Exception as e:
             logger.error(f"Ошибка при создании заказа: {str(e)}")
-            await self.session.rollback()
-            import traceback
-            error_details = f"{str(e)}\n{traceback.format_exc()}"
-            logger.error(f"Трассировка: {error_details}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Ошибка при создании заказа: {str(e)}"
-            )
+            raise HTTPException(status_code=500, detail=f"Ошибка при создании заказа: {str(e)}")
 
     async def get_user_orders(self, user: UserResponse, skip: int = 0, limit: int = 10):
         """
