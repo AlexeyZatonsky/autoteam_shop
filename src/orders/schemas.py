@@ -1,4 +1,4 @@
-from pydantic import BaseModel, UUID4, Field
+from pydantic import BaseModel, UUID4, Field, ConfigDict
 from decimal import Decimal
 from datetime import datetime
 from typing import List, Optional
@@ -10,6 +10,8 @@ class OrderItemBase(BaseModel):
     quantity: int
     price: Decimal = Field(decimal_places=2)
     product_name: str
+    
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class OrderCreate(BaseModel):
@@ -17,14 +19,15 @@ class OrderCreate(BaseModel):
     payment_method: Optional[str] = None
     phone_number: str
     delivery_address: str
+    
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class OrderItemResponse(OrderItemBase):
     id: UUID4
     order_id: UUID4
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 
 class OrderResponse(BaseModel):
@@ -42,8 +45,7 @@ class OrderResponse(BaseModel):
     updated_at: datetime
     items: List[OrderItemResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 
 class OrderUpdate(BaseModel):
@@ -53,3 +55,5 @@ class OrderUpdate(BaseModel):
     payment_method: PaymentMethodEnum | None = None
     phone_number: str | None = None
     delivery_address: str | None = None
+    
+    model_config = ConfigDict(use_enum_values=True)

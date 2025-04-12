@@ -15,10 +15,10 @@ class Order(Base):
     user_id = Column(String, nullable=False, index=True)  # ID пользователя в Telegram
     telegram_username = Column(String, nullable=False, index=True)  # Имя пользователя в Telegram
     total_amount = Column(NUMERIC(10, 2), nullable=False)
-    status = Column(SQLAlchemyEnum(OrderStatusEnum), nullable=False, default=OrderStatusEnum.NEW)
-    payment_status = Column(SQLAlchemyEnum(PaymentStatusEnum), nullable=False, default=PaymentStatusEnum.NOT_PAID)
-    payment_method = Column(SQLAlchemyEnum(PaymentMethodEnum), nullable=True, default=PaymentMethodEnum.PAYMENT_ON_DELIVERY)  # Способ оплаты
-    delivery_method = Column(SQLAlchemyEnum(DeliveryMethodEnum), nullable=False)
+    status = Column(SQLAlchemyEnum(OrderStatusEnum, native_enum=True), nullable=False, default=OrderStatusEnum.NEW)
+    payment_status = Column(SQLAlchemyEnum(PaymentStatusEnum, native_enum=True), nullable=False, default=PaymentStatusEnum.NOT_PAID)
+    payment_method = Column(SQLAlchemyEnum(PaymentMethodEnum, native_enum=True), nullable=True, default=PaymentMethodEnum.PAYMENT_ON_DELIVERY)  # Способ оплаты
+    delivery_method = Column(SQLAlchemyEnum(DeliveryMethodEnum, native_enum=True), nullable=False)
     phone_number = Column(String, nullable=False)
     delivery_address = Column(String, nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.now(), nullable=False)
