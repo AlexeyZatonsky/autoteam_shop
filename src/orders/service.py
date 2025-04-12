@@ -77,7 +77,17 @@ class OrderService:
                     ))
 
             await self.cart_service.clear_cart(user)
-            return order
+            # После очистки корзины
+            await self.cart_service.clear_cart(user)
+
+            # Подгружаем заказ с item'ами для сериализации
+            result = await self.session.execute(
+                select(Order)
+                .where(Order.id == order.id)
+                .options(joinedload(Order.items))
+            )
+            return result.unique().scalar_one()
+
 
         except Exception as e:
             logger.error(f"Ошибка при создании заказа: {str(e)}")

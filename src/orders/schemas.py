@@ -37,9 +37,9 @@ class OrderResponse(BaseModel):
     status: OrderStatusEnum
     payment_status: PaymentStatusEnum
     delivery_method: DeliveryMethodEnum
-    payment_method: Optional[PaymentMethodEnum] = None
+    payment_method: PaymentMethodEnum
     phone_number: str
-    delivery_address: str | None
+    delivery_address: str
     created_at: datetime
     updated_at: datetime
     items: List[OrderItemResponse]
