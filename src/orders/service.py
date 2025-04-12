@@ -37,10 +37,6 @@ class OrderService:
         logger.info(f"Начало создания заказа для пользователя {user.id}")
         logger.info(f"Входящие данные: delivery_method={order_data.delivery_method}, payment_method={order_data.payment_method}")
         
-        # Выводим все возможные значения перечислений
-        logger.info(f"Доступные методы доставки: {[f'{key}={value.value}' for key, value in DeliveryMethodEnum.__members__.items()]}")
-        logger.info(f"Доступные методы оплаты: {[f'{key}={value.value}' for key, value in PaymentMethodEnum.__members__.items()]}")
-        
         try:
             # Получаем корзину пользователя со всеми товарами
             cart = await self.cart_service.get_or_create_cart(user)
@@ -62,68 +58,36 @@ class OrderService:
             phone_number = order_data.phone_number
             delivery_address = order_data.delivery_address
             
-            # Преобразуем строковые значения в значения перечислений
-            # Для delivery_method
+            # Определяем метод доставки
             try:
-                # Сначала попробуем найти соответствие по значению перечисления
-                delivery_method_key = None
-                for enum_key, enum_value in DeliveryMethodEnum.__members__.items():
-                    logger.info(f"Сравниваем delivery_method: '{order_data.delivery_method}' с '{enum_value.value}' (ключ={enum_key})")
-                    if enum_value.value == order_data.delivery_method:
-                        delivery_method_key = enum_key
+                # Ищем совпадение значения
+                delivery_method = DeliveryMethodEnum.SDEK  # Значение по умолчанию
+                for enum_item in DeliveryMethodEnum:
+                    if enum_item.value == order_data.delivery_method:
+                        delivery_method = enum_item
                         break
-                
-                # Если не найдено соответствие по значению, поищем по ключу
-                if delivery_method_key is None:
-                    logger.info(f"Соответствие по значению не найдено, ищем по ключу: '{order_data.delivery_method}'")
-                    if order_data.delivery_method in DeliveryMethodEnum.__members__:
-                        delivery_method_key = order_data.delivery_method
-                
-                # Если не найдено соответствие ни по значению, ни по ключу, используем SDEK
-                if delivery_method_key is None:
-                    logger.info(f"Соответствие не найдено, используем SDEK")
-                    delivery_method_key = "SDEK"
-                
-                # Получаем объект перечисления
-                delivery_method = DeliveryMethodEnum[delivery_method_key]
-                logger.info(f"Выбран метод доставки: {delivery_method_key} ({delivery_method.value})")
+                logger.info(f"Выбран метод доставки: {delivery_method.name} ({delivery_method.value})")
             except Exception as e:
-                logger.error(f"Ошибка при обработке метода доставки: {str(e)}")
+                logger.error(f"Ошибка при определении метода доставки: {str(e)}")
                 delivery_method = DeliveryMethodEnum.SDEK
-                logger.info(f"Используем метод доставки по умолчанию: SDEK")
+                logger.info(f"Используем метод доставки по умолчанию: {delivery_method.name} ({delivery_method.value})")
             
-            # Для payment_method
-            payment_method = PaymentMethodEnum.PAYMENT_ON_DELIVERY  # Значение по умолчанию
-            
-            if order_data.payment_method:
-                try:
-                    # Сначала попробуем найти соответствие по значению перечисления
-                    payment_method_key = None
-                    for enum_key, enum_value in PaymentMethodEnum.__members__.items():
-                        logger.info(f"Сравниваем payment_method: '{order_data.payment_method}' с '{enum_value.value}' (ключ={enum_key})")
-                        if enum_value.value == order_data.payment_method:
-                            payment_method_key = enum_key
+            # Определяем метод оплаты
+            try:
+                # Метод оплаты по умолчанию
+                payment_method = PaymentMethodEnum.PAYMENT_ON_DELIVERY
+                
+                if order_data.payment_method:
+                    # Ищем совпадение значения
+                    for enum_item in PaymentMethodEnum:
+                        if enum_item.value == order_data.payment_method:
+                            payment_method = enum_item
                             break
-                    
-                    # Если не найдено соответствие по значению, поищем по ключу
-                    if payment_method_key is None:
-                        logger.info(f"Соответствие по значению не найдено, ищем по ключу: '{order_data.payment_method}'")
-                        if order_data.payment_method in PaymentMethodEnum.__members__:
-                            payment_method_key = order_data.payment_method
-                    
-                    # Если не найдено соответствие ни по значению, ни по ключу, используем PAYMENT_ON_DELIVERY
-                    if payment_method_key is None:
-                        logger.info(f"Соответствие не найдено, используем PAYMENT_ON_DELIVERY")
-                        payment_method_key = "PAYMENT_ON_DELIVERY"
-                    
-                    # Получаем объект перечисления
-                    payment_method = PaymentMethodEnum[payment_method_key]
-                    logger.info(f"Выбран метод оплаты: {payment_method_key} ({payment_method.value})")
-                except Exception as e:
-                    logger.error(f"Ошибка при обработке метода оплаты: {str(e)}")
-                    logger.info(f"Используем метод оплаты по умолчанию: PAYMENT_ON_DELIVERY")
-            
-            logger.info(f"Создание заказа с параметрами: метод доставки={delivery_method}, метод оплаты={payment_method}")
+                logger.info(f"Выбран метод оплаты: {payment_method.name} ({payment_method.value})")
+            except Exception as e:
+                logger.error(f"Ошибка при определении метода оплаты: {str(e)}")
+                payment_method = PaymentMethodEnum.PAYMENT_ON_DELIVERY
+                logger.info(f"Используем метод оплаты по умолчанию: {payment_method.name} ({payment_method.value})")
             
             # Начинаем транзакцию
             async with self.session.begin_nested():
