@@ -106,49 +106,33 @@ async def update_category_name(
 @router.patch("/{name}/image")
 async def update_category_image(
     name: str = Path(..., min_length=2, max_length=100),
-    data: Dict = Body(default=None),
-    image: UploadFile = File(None),
+    image: str = Form(None),  # Ожидаем image как параметр формы
+    image_file: UploadFile = File(None),  # Или как файл
     session: AsyncSession = Depends(get_async_session)
 ) -> CategoryRead:
     """
     Обновление изображения категории.
     
     - **name**: Название категории
-    - **image**: Новое изображение категории (файл)
-    - **data**: JSON с URL изображения в поле "image"
+    - **image**: URL изображения категории (строка)
+    - **image_file**: Файл изображения категории
     """
     try:
         service = CategoryService(session)
         
         # Проверяем, какой способ передачи изображения использован
-        if image and image.filename:
+        if image_file and image_file.filename:
             # Если передан файл, загружаем его
-            result = await FileService.upload_file(image)
+            result = await FileService.upload_file(image_file)
             if not result or 'url' not in result:
                 raise HTTPException(
                     status_code=500,
                     detail="Ошибка при загрузке изображения"
                 )
             image_url = result['url']
-        elif data:
-            # Проверяем различные варианты расположения URL в данных
-            if isinstance(data, dict):
-                if 'image' in data:
-                    image_url = data['image']
-                elif 'url' in data:
-                    image_url = data['url']
-                else:
-                    # Если data - словарь, но нет нужных ключей, проверяем прямое значение
-                    image_url = data if isinstance(data, str) else None
-            else:
-                # Если data не словарь, проверяем, может быть это строка с URL
-                image_url = data if isinstance(data, str) else None
-                
-            if not image_url:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Не предоставлено изображение или URL"
-                )
+        elif image:
+            # Если передан URL изображения
+            image_url = image
         else:
             raise HTTPException(
                 status_code=400,

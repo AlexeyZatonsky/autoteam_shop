@@ -66,14 +66,27 @@ class CategoryAPI:
     
     async def update_category_image(self, name: str, image_url: str) -> Dict:
         """Обновляет изображение категории, используя URL изображения"""
-        # Используем явно словарь Python, а не FormData, и указываем is_json=True
-        json_data = {"image": image_url}
-        return await self.api_client.make_request(
-            method="PATCH",
-            endpoint=f"api/categories/{name}/image",
-            data=json_data,
-            is_json=True  # Явно указываем, что данные нужно отправить как JSON
-        )
+        # Отправляем image_url как параметр формы
+        form_data = aiohttp.FormData()
+        form_data.add_field('image', image_url)
+        
+        try:
+            url = f"{self.api_client.api_url}api/categories/{name}/image"
+            print(f"Отправляем запрос PATCH на {url} с image={image_url}")
+            
+            connector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.patch(url, data=form_data) as response:
+                    response_text = await response.text()
+                    print(f"Ответ сервера: {response.status} - {response_text}")
+                    
+                    if response.status >= 400:
+                        raise Exception(f"API error {response.status}: {response_text}")
+                    
+                    return await response.json()
+        except Exception as e:
+            print(f"Ошибка при обновлении изображения: {str(e)}")
+            raise Exception(f"Ошибка при обновлении изображения: {str(e)}")
     
     async def update_category_image_with_file(self, name: str, file_content: bytes, filename: str, content_type: str = "image/jpeg") -> Dict:
         """Обновляет изображение категории с загрузкой файла в одном запросе"""
@@ -82,7 +95,7 @@ class CategoryAPI:
         if not upload_result or "url" not in upload_result:
             raise Exception("Не удалось загрузить файл")
             
-        # Используем новую логику для обновления категории с явным указанием is_json=True
+        # Используем обновленный метод для обновления категории
         return await self.update_category_image(name, upload_result["url"])
     
     async def delete_category(self, name: str) -> Dict:
