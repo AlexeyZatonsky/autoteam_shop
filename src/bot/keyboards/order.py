@@ -19,8 +19,7 @@ def get_order_management_menu() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="📆 Заказы за неделю", callback_data="order:week")
             ],
             [
-                InlineKeyboardButton(text="✅ Завершённые заказы", callback_data="order:completed"),
-                InlineKeyboardButton(text="🗑 Удалить завершённые", callback_data="order:delete_completed")
+                InlineKeyboardButton(text="✅ Завершённые заказы", callback_data="order:completed")
             ],
             [
                 InlineKeyboardButton(text="🔙 Назад", callback_data="menu:main")
@@ -211,26 +210,6 @@ def get_order_delete_confirmation_keyboard(order_id: str) -> InlineKeyboardMarku
                 InlineKeyboardButton(
                     text="🔙 Нет, вернуться", 
                     callback_data=f"order:view:{order_id}"
-                )
-            ]
-        ]
-    )
-
-
-def get_delete_completed_confirmation_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура подтверждения удаления всех завершенных заказов"""
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="✅ Да, удалить все завершенные заказы", 
-                    callback_data="order:delete_completed_confirm"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text="🔙 Нет, вернуться", 
-                    callback_data="order:manage"
                 )
             ]
         ]

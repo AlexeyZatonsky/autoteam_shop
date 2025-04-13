@@ -244,9 +244,10 @@ class OrderAPI:
     async def delete_completed_orders(self) -> Dict[str, Any]:
         """Удаляет все завершенные заказы"""
         try:
+            # Используем более конкретный эндпоинт, который не конфликтует с другими эндпоинтами
             result = await self.api_client.make_request(
                 method="DELETE",
-                endpoint="/api/orders/admin/completed",
+                endpoint="/api/orders/admin/delete-completed-orders", # Изменен эндпоинт на более уникальный
                 headers={"Accept": "application/json", "X-API-Key": self.api_key}
             )
             return result

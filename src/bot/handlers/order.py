@@ -13,8 +13,7 @@ from ..keyboards.order import (
     get_order_status_keyboard,
     get_payment_status_keyboard,
     get_order_cancel_confirmation_keyboard,
-    get_order_delete_confirmation_keyboard,
-    get_delete_completed_confirmation_keyboard
+    get_order_delete_confirmation_keyboard
 )
 from ..states.order import OrderStates
 from ...orders.enums import OrderStatusEnum, PaymentStatusEnum
@@ -514,46 +513,10 @@ async def delete_order(callback: CallbackQuery, **data):
         )
 
 
-@router.callback_query(F.data == "order:delete_completed")
-async def confirm_delete_completed(callback: CallbackQuery, **kwargs):
-    """Подтверждение удаления всех завершенных заказов"""
-    keyboard = get_delete_completed_confirmation_keyboard()
-    await callback.message.edit_text(
-        "❗ Вы уверены, что хотите удалить ВСЕ завершенные заказы?\n\n"
-        "Это действие нельзя отменить. Все завершенные заказы будут полностью удалены из базы данных.",
-        reply_markup=keyboard
-    )
+@router.callback_query(F.data == "order:noop")
+async def noop(callback: CallbackQuery, **kwargs):
+    """Обработчик для кнопок без действия"""
     await callback.answer()
-
-
-@router.callback_query(F.data == "order:delete_completed_confirm")
-async def delete_completed_orders(callback: CallbackQuery, **data):
-    """Удаление всех завершенных заказов"""
-    api_client = data["api_client"].order_api
-    
-    await callback.answer("Удаление завершенных заказов...")
-    
-    try:
-        result = await api_client.delete_completed_orders()
-        count = result.get("count", 0)
-        
-        await callback.message.edit_text(
-            f"✅ Успешно удалено {count} завершенных заказов",
-            reply_markup=get_order_management_menu()
-        )
-    except Exception as e:
-        error_msg = str(e)
-        # Проверка на ошибку авторизации
-        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
-            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
-        # Проверка на ошибку с UUID (неверный формат запроса)
-        elif "422" in error_msg and "uuid" in error_msg.lower():
-            error_msg = "Ошибка в API запросе. Обратитесь к разработчику для проверки эндпоинта."
-            
-        await callback.message.edit_text(
-            f"❌ Ошибка при удалении завершенных заказов: {error_msg}",
-            reply_markup=get_order_management_menu()
-        )
 
 
 # Вспомогательные функции
@@ -658,12 +621,6 @@ async def back_to_list(callback: CallbackQuery, **data):
     """Возврат к списку заказов"""
     # Просто вызываем обработчик для получения всех заказов
     await get_all_orders(callback, **data)
-
-
-@router.callback_query(F.data == "order:noop")
-async def noop(callback: CallbackQuery, **kwargs):
-    """Обработчик для кнопок без действия"""
-    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("order:user_info:"))
