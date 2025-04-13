@@ -31,7 +31,7 @@ class CartItem(Base):
     __tablename__ = "cart_items"
     
     cart_id = Column(UUID(as_uuid=True), ForeignKey("carts.id", ondelete="CASCADE"), primary_key=True)
-    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), primary_key=True)
+    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), primary_key=True)
     quantity = Column(Integer, nullable=False, default=1)
     
     # Отношения
