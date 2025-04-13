@@ -250,4 +250,19 @@ async def cancel_product_creation(message: Message, state: FSMContext):
     await message.answer(
         "Создание продукта отменено.",
         reply_markup=get_product_creation_keyboard()
-    ) 
+    )
+
+# Добавляем новый обработчик для кнопки "Отмена"
+@router.callback_query(F.data == "product:cancel")
+async def handle_product_cancel(callback: CallbackQuery, state: FSMContext, **kwargs):
+    """Обработчик отмены создания продукта"""
+    # Очищаем состояние
+    await state.clear()
+    
+    # Возвращаемся в меню управления товарами
+    from ..keyboards.menu import get_products_menu
+    await callback.message.edit_text(
+        "📦 Управление товарами:",
+        reply_markup=get_products_menu()
+    )
+    await callback.answer("Операция отменена") 

@@ -59,8 +59,13 @@ async def get_all_orders(callback: CallbackQuery, **data):
             reply_markup=keyboard
         )
     except Exception as e:
+        error_msg = str(e)
+        # Проверка на ошибку авторизации
+        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
+        
         await callback.message.edit_text(
-            f"❌ Ошибка при получении заказов: {str(e)}",
+            f"❌ Ошибка при получении заказов: {error_msg}",
             reply_markup=get_order_management_menu()
         )
 
@@ -70,7 +75,7 @@ async def get_today_orders(callback: CallbackQuery, **data):
     """Получение списка заказов за сегодня"""
     api_client = data["api_client"].order_api
     
-    await callback.answer("Загрузка заказов за сегодня...")
+    await callback.answer("Загрузка списка заказов за сегодня...")
     
     try:
         orders = await api_client.get_today_orders()
@@ -83,13 +88,18 @@ async def get_today_orders(callback: CallbackQuery, **data):
         
         keyboard = get_order_list_keyboard(orders)
         await callback.message.edit_text(
-            "📋 Заказы за сегодня:\n\n"
+            "📋 Список заказов за сегодня:\n\n"
             "Формат: 👤 Пользователь | 💵 Сумма | 📊 Статус заказа | 💰 Статус оплаты",
             reply_markup=keyboard
         )
     except Exception as e:
+        error_msg = str(e)
+        # Проверка на ошибку авторизации
+        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
+        
         await callback.message.edit_text(
-            f"❌ Ошибка при получении заказов: {str(e)}",
+            f"❌ Ошибка при получении заказов: {error_msg}",
             reply_markup=get_order_management_menu()
         )
 
@@ -99,7 +109,7 @@ async def get_week_orders(callback: CallbackQuery, **data):
     """Получение списка заказов за неделю"""
     api_client = data["api_client"].order_api
     
-    await callback.answer("Загрузка заказов за неделю...")
+    await callback.answer("Загрузка списка заказов за неделю...")
     
     try:
         orders = await api_client.get_week_orders()
@@ -112,42 +122,52 @@ async def get_week_orders(callback: CallbackQuery, **data):
         
         keyboard = get_order_list_keyboard(orders)
         await callback.message.edit_text(
-            "📋 Заказы за последнюю неделю:\n\n"
+            "📋 Список заказов за неделю:\n\n"
             "Формат: 👤 Пользователь | 💵 Сумма | 📊 Статус заказа | 💰 Статус оплаты",
             reply_markup=keyboard
         )
     except Exception as e:
+        error_msg = str(e)
+        # Проверка на ошибку авторизации
+        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
+        
         await callback.message.edit_text(
-            f"❌ Ошибка при получении заказов: {str(e)}",
+            f"❌ Ошибка при получении заказов: {error_msg}",
             reply_markup=get_order_management_menu()
         )
 
 
 @router.callback_query(F.data == "order:completed")
 async def get_completed_orders(callback: CallbackQuery, **data):
-    """Получение списка завершенных заказов"""
+    """Получение списка выполненных заказов"""
     api_client = data["api_client"].order_api
     
-    await callback.answer("Загрузка завершенных заказов...")
+    await callback.answer("Загрузка списка выполненных заказов...")
     
     try:
         orders = await api_client.get_completed_orders()
         if not orders:
             await callback.message.edit_text(
-                "📋 Завершенные заказы не найдены",
+                "📋 Выполненные заказы не найдены",
                 reply_markup=get_order_management_menu()
             )
             return
         
         keyboard = get_order_list_keyboard(orders)
         await callback.message.edit_text(
-            "📋 Завершенные заказы:\n\n"
+            "📋 Список выполненных заказов:\n\n"
             "Формат: 👤 Пользователь | 💵 Сумма | 📊 Статус заказа | 💰 Статус оплаты",
             reply_markup=keyboard
         )
     except Exception as e:
+        error_msg = str(e)
+        # Проверка на ошибку авторизации
+        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
+        
         await callback.message.edit_text(
-            f"❌ Ошибка при получении заказов: {str(e)}",
+            f"❌ Ошибка при получении заказов: {error_msg}",
             reply_markup=get_order_management_menu()
         )
 
@@ -328,8 +348,13 @@ async def set_status(callback: CallbackQuery, **data):
             reply_markup=keyboard
         )
     except Exception as e:
+        error_msg = str(e)
+        # Проверка на ошибку авторизации
+        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
+            
         await callback.message.edit_text(
-            f"❌ Ошибка при изменении статуса заказа: {str(e)}",
+            f"❌ Ошибка при изменении статуса заказа: {error_msg}",
             reply_markup=get_order_view_keyboard(short_order_id)
         )
 
@@ -380,9 +405,14 @@ async def set_payment(callback: CallbackQuery, **data):
             reply_markup=keyboard
         )
     except Exception as e:
+        error_msg = str(e)
+        # Проверка на ошибку авторизации
+        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
+            
         # В случае ошибки используем короткий ID для клавиатуры
         await callback.message.edit_text(
-            f"❌ Ошибка при изменении статуса оплаты: {str(e)}",
+            f"❌ Ошибка при изменении статуса оплаты: {error_msg}",
             reply_markup=get_order_management_menu()
         )
 
@@ -429,8 +459,13 @@ async def cancel_order(callback: CallbackQuery, **data):
             reply_markup=keyboard
         )
     except Exception as e:
+        error_msg = str(e)
+        # Проверка на ошибку авторизации
+        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
+            
         await callback.message.edit_text(
-            f"❌ Ошибка при отмене заказа: {str(e)}",
+            f"❌ Ошибка при отмене заказа: {error_msg}",
             reply_markup=get_order_view_keyboard(short_order_id)
         )
 
@@ -468,8 +503,13 @@ async def delete_order(callback: CallbackQuery, **data):
             reply_markup=get_order_management_menu()
         )
     except Exception as e:
+        error_msg = str(e)
+        # Проверка на ошибку авторизации
+        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
+            
         await callback.message.edit_text(
-            f"❌ Ошибка при удалении заказа: {str(e)}",
+            f"❌ Ошибка при удалении заказа: {error_msg}",
             reply_markup=get_order_management_menu()
         )
 
