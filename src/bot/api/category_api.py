@@ -66,10 +66,13 @@ class CategoryAPI:
     
     async def update_category_image(self, name: str, image_url: str) -> Dict:
         """Обновляет изображение категории, используя URL изображения"""
+        # Используем явно словарь Python, а не FormData, и указываем is_json=True
+        json_data = {"image": image_url}
         return await self.api_client.make_request(
             method="PATCH",
             endpoint=f"api/categories/{name}/image",
-            data={"image": image_url}
+            data=json_data,
+            is_json=True  # Явно указываем, что данные нужно отправить как JSON
         )
     
     async def update_category_image_with_file(self, name: str, file_content: bytes, filename: str, content_type: str = "image/jpeg") -> Dict:
@@ -79,6 +82,7 @@ class CategoryAPI:
         if not upload_result or "url" not in upload_result:
             raise Exception("Не удалось загрузить файл")
             
+        # Используем новую логику для обновления категории с явным указанием is_json=True
         return await self.update_category_image(name, upload_result["url"])
     
     async def delete_category(self, name: str) -> Dict:

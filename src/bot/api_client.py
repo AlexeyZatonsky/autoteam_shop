@@ -34,6 +34,7 @@ class APIClient:
         data: Union[Dict[str, Any], aiohttp.FormData] = None,
         files: List[tuple] = None,
         is_form_data: bool = False,
+        is_json: bool = False,
         **kwargs
     ) -> Dict[str, Any]:
         """Выполнение запроса к API
@@ -44,6 +45,7 @@ class APIClient:
             data: Данные для запроса (dict или FormData)
             files: Список кортежей (name, (filename, file_content, content_type))
             is_form_data: Флаг, указывающий, что данные нужно отправить как FormData
+            is_json: Флаг, указывающий, что данные нужно отправить как JSON
             **kwargs: Дополнительные параметры для запроса
         """
         # Убираем начальный слеш, если он есть
@@ -54,8 +56,12 @@ class APIClient:
         connector = aiohttp.TCPConnector(ssl=False) 
         try:
             async with aiohttp.ClientSession(connector=connector) as session:
+                # Если задан is_json, принудительно отправляем как JSON
+                if is_json and data and not isinstance(data, aiohttp.FormData):
+                    kwargs['json'] = data
+                    print(f"Отправляем JSON данные на {url}: {data}")
                 # Если передан FormData или указан флаг is_form_data, используем FormData
-                if isinstance(data, aiohttp.FormData) or is_form_data:
+                elif isinstance(data, aiohttp.FormData) or is_form_data:
                     if not isinstance(data, aiohttp.FormData):
                         form = aiohttp.FormData()
                         for key, value in data.items():
