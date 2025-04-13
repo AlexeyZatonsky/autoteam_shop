@@ -576,6 +576,13 @@ async def handle_pagination(callback: CallbackQuery, **data):
     try:
         orders = await api_client.get_all_orders(skip=page * 5, limit=5)
         
+        if not orders:
+            await callback.message.edit_text(
+                "📋 Заказы не найдены на этой странице",
+                reply_markup=get_order_management_menu()
+            )
+            return
+        
         keyboard = get_order_list_keyboard(orders, page=page)
         await callback.message.edit_text(
             "📋 Список заказов:\n\n"

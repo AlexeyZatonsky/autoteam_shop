@@ -26,9 +26,6 @@ def get_products_menu() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="📦 Добавить продукт", callback_data="product:create")
             ],
             [
-                InlineKeyboardButton(text="🗑 Удалить продукт", callback_data="product:delete")
-            ],
-            [
                 InlineKeyboardButton(text="📋 Выгрузить список продуктов", callback_data="product:list")
             ],
             [
