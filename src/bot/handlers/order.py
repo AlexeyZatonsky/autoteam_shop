@@ -542,8 +542,16 @@ async def delete_completed_orders(callback: CallbackQuery, **data):
             reply_markup=get_order_management_menu()
         )
     except Exception as e:
+        error_msg = str(e)
+        # Проверка на ошибку авторизации
+        if "401" in error_msg or "not found" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            error_msg = "Ошибка авторизации. Пожалуйста, проверьте настройки API-ключа в конфигурации бота."
+        # Проверка на ошибку с UUID (неверный формат запроса)
+        elif "422" in error_msg and "uuid" in error_msg.lower():
+            error_msg = "Ошибка в API запросе. Обратитесь к разработчику для проверки эндпоинта."
+            
         await callback.message.edit_text(
-            f"❌ Ошибка при удалении завершенных заказов: {str(e)}",
+            f"❌ Ошибка при удалении завершенных заказов: {error_msg}",
             reply_markup=get_order_management_menu()
         )
 
