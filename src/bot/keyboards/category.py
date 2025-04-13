@@ -32,8 +32,7 @@ def get_category_list_keyboard(categories: List[Dict]) -> InlineKeyboardMarkup:
     
     # Добавляем кнопки управления
     keyboard.append([
-        InlineKeyboardButton(text="➕ Добавить", callback_data="category:add"),
-        InlineKeyboardButton(text="🔄 Обновить", callback_data="category:list")
+        InlineKeyboardButton(text="➕ Добавить", callback_data="category:add")
     ])
     keyboard.append([
         InlineKeyboardButton(text="🔙 Назад", callback_data="category:manage")

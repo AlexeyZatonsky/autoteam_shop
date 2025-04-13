@@ -34,8 +34,7 @@ def get_product_list_keyboard(products: List[Dict]) -> InlineKeyboardMarkup:
     
     # Добавляем кнопки управления
     keyboard.append([
-        InlineKeyboardButton(text="➕ Добавить", callback_data="product:create"),
-        InlineKeyboardButton(text="🔄 Обновить", callback_data="product:list")
+        InlineKeyboardButton(text="➕ Добавить", callback_data="product:create")
     ])
     keyboard.append([
         InlineKeyboardButton(text="🔙 Назад", callback_data="menu:main")
